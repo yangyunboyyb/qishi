@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "18ebf1e2-ecad-4968-bf5e-9e4e3a74cdaf",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "kai_shi_you_xi": {
+      "ver": "1.0.3",
+      "uuid": "5532ca96-9516-4055-bf03-93a50259818c",
+      "rawTextureUuid": "18ebf1e2-ecad-4968-bf5e-9e4e3a74cdaf",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": -299.5,
+      "offsetY": -5.5,
+      "trimX": 26,
+      "trimY": 23,
+      "width": 329,
+      "height": 74,
+      "rawWidth": 980,
+      "rawHeight": 109,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

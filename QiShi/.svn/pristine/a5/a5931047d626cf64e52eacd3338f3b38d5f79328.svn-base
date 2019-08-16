@@ -1,0 +1,41 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        levelLabel: cc.Label,
+        isLocked: cc.Node,
+        enterBtn: cc.Node,
+    },
+
+    init: function (level) {
+        this.level = level;
+        this.levelLabel.string = this.level.toString();
+        if (this.level > window.GameData.curMaxLevel) {
+            this.isLocked.active = true;
+        }
+        else {
+            this.isLocked.active = false;
+            if (this.level == window.GameData.curMaxLevel) {
+                this.enterBtn.active = true;
+            }
+            else {
+                this.enterBtn.active = false;
+            }
+        }
+    },
+
+    onLoad: function () {
+        let self = this;
+        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.isLocked.active)
+                return;
+            window.GameData.setCurLevel(self.level);
+            cc.director.loadScene("game");
+        }, this);
+    },
+
+    start() {
+
+    },
+});

@@ -1,0 +1,60 @@
+2019-03-26T08:28:34.767Z - normal: Load ~/.CocosCreator/settings.json
+2019-03-26T08:28:34.783Z - normal: checking language setting...
+2019-03-26T08:28:34.783Z - normal: Language: zh
+2019-03-26T08:28:36.456Z - success: protocol editor-framework registered
+2019-03-26T08:28:36.456Z - success: protocol app registered
+2019-03-26T08:28:36.456Z - success: protocol theme registered
+2019-03-26T08:28:36.456Z - success: protocol packages registered
+2019-03-26T08:28:36.456Z - success: protocol unpack registerred
+2019-03-26T08:28:36.456Z - success: protocol disable-commonjs registerred
+2019-03-26T08:28:36.566Z - normal: connected!
+2019-03-26T08:28:36.566Z - normal: Check project C:\QiShi\gamerank
+2019-03-26T08:28:36.566Z - normal: Initializing project C:\QiShi\gamerank
+2019-03-26T08:28:36.581Z - normal: Initializing Cocos2d
+2019-03-26T08:28:37.330Z - normal: Initializing Asset Database
+2019-03-26T08:28:37.377Z - success: protocol uuid registerred
+2019-03-26T08:28:37.377Z - success: protocol db registerred
+2019-03-26T08:28:37.377Z - success: protocol thumbnail registerred
+2019-03-26T08:28:37.377Z - normal: Loading editor/builtin packages
+2019-03-26T08:28:37.517Z - success: assets loaded
+2019-03-26T08:28:37.517Z - success: builder loaded
+2019-03-26T08:28:37.517Z - success: cocos-analytics loaded
+2019-03-26T08:28:37.517Z - success: console loaded
+2019-03-26T08:28:37.548Z - success: fb-instant-games loaded
+2019-03-26T08:28:37.564Z - success: google-instant-games loaded
+2019-03-26T08:28:37.564Z - success: hierarchy loaded
+2019-03-26T08:28:37.564Z - success: inspector loaded
+2019-03-26T08:28:37.564Z - success: keystore loaded
+2019-03-26T08:28:37.564Z - success: node-library loaded
+2019-03-26T08:28:37.564Z - success: package-asset loaded
+2019-03-26T08:28:37.564Z - success: preferences loaded
+2019-03-26T08:28:37.564Z - success: project-exporter loaded
+2019-03-26T08:28:37.580Z - success: project-importer loaded
+2019-03-26T08:28:37.580Z - success: project-settings loaded
+2019-03-26T08:28:37.595Z - success: ui-kit loaded
+2019-03-26T08:28:37.595Z - success: scene loaded
+2019-03-26T08:28:37.595Z - success: sprite-editor loaded
+2019-03-26T08:28:37.595Z - success: store loaded
+2019-03-26T08:28:37.595Z - success: timeline loaded
+2019-03-26T08:28:37.595Z - normal: Loading builtin packages
+2019-03-26T08:28:37.595Z - success: asset-db-debugger loaded
+2019-03-26T08:28:37.595Z - success: code-editor loaded
+2019-03-26T08:28:37.611Z - success: color-picker loaded
+2019-03-26T08:28:37.689Z - success: google-play-instant loaded
+2019-03-26T08:28:37.704Z - success: jsb-adapter loaded
+2019-03-26T08:28:37.704Z - success: oppo-runtime loaded
+2019-03-26T08:28:37.704Z - success: package-manager loaded
+2019-03-26T08:28:37.798Z - success: qqplay-adapter loaded
+2019-03-26T08:28:37.798Z - success: sdkbox loaded
+2019-03-26T08:28:37.798Z - success: tester loaded
+2019-03-26T08:28:37.798Z - success: ui-grid loaded
+2019-03-26T08:28:37.814Z - success: ui-kit-preview-extra loaded
+2019-03-26T08:28:37.814Z - success: ui-kit-preview loaded
+2019-03-26T08:28:37.814Z - success: ui-tree loaded
+2019-03-26T08:28:37.814Z - success: vivo-runtime loaded
+2019-03-26T08:28:37.814Z - success: weapp-adapter loaded
+2019-03-26T08:28:38.813Z - normal: Loading packages
+2019-03-26T08:28:38.813Z - normal: Watching packages
+2019-03-26T08:28:39.453Z - normal: Run Application
+2019-03-26T08:28:41.156Z - success: preview server running at http://localhost:7457
+2019-03-26T08:29:34.387Z - info: shutdown preview server

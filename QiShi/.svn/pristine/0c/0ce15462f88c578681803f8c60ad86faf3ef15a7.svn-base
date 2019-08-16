@@ -1,0 +1,57 @@
+
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        scrollViewContent: cc.Node,
+        returnBtn: cc.Node,
+        levelItem: cc.Prefab,
+    },
+
+    start() {
+        this.scrollViewContent.removeAllChildren();
+        let count = -1;
+        if (window.GameData.selStage == null) {
+            let maxLevel = window.GameData.curMaxLevel;
+            count = parseInt(maxLevel / Global.levelSum);
+            if (maxLevel % Global.levelSum == 0) {
+                count--;
+                if (count < 0) {
+                    count = 0;
+                }
+            }
+        }
+        else {
+            count = window.GameData.selStage;
+            window.GameData.setSelStage(null);
+
+        }
+        let plus = count * Global.levelSum;
+        for (var i = 1; i <= Global.levelSum; i++) {
+            let item = cc.instantiate(this.levelItem);
+            item.getComponent("levelItem").init(i + plus);
+            this.scrollViewContent.addChild(item);
+        }
+
+    },
+
+    onLoad: function () {
+        this.onResize(); //屏幕适配
+        this.returnBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            AudioHelp.btnClickEffect();
+            cc.director.loadScene("level_big");
+        }, this);
+    },
+
+    onResize: function () {
+        let frameSize = cc.view.getFrameSize();
+        let Height = window.wx.getSystemInfoSync().pixelRatio * frameSize.height; //分辨率
+        let DeviceHeight = window.wx.getSystemInfoSync().devicePixelRatio * frameSize.height; //硬件分辨率
+        if (Height == DeviceHeight) {
+            let H = frameSize.height * (760 / frameSize.width);
+            let sScale = 1280 / H;
+            this.node.getChildByName("panelBg").setScale(sScale);
+        }
+    },
+});

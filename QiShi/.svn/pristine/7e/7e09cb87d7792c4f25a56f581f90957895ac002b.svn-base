@@ -1,0 +1,2077 @@
+(function() {"use strict";var __module = CC_EDITOR ? module : {exports:{}};var __filename = 'preview-scripts/assets/Script/bbb_physicsLayer.js';var __require = CC_EDITOR ? function (request) {return cc.require(request, require);} : function (request) {return cc.require(request, __filename);};function __define (exports, require, module) {"use strict";
+cc._RF.push(module, 'a0005rsZJJKnZ9RqbALVwtK', 'bbb_physicsLayer', __filename);
+// Script/bbb_physicsLayer.js
+
+"use strict";
+
+var Random = require("bbb_random");
+var Cannon = require("bbb_cannon");
+var HiddenLine = require("bbb_hiddenLine");
+var Utils = require("Utils");
+var PanelManager = require("PanelManager");
+var AudioHelp = require("AudioHelp");
+var WXHelp = require("WXHelp");
+var CallBackHelp = require("CallBackHelp");
+var JsonConfig = require("JsonConfig");
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        ballPrefab: cc.Prefab,
+        boxPrefab: cc.Prefab,
+        itemPrefab: cc.Prefab,
+
+        cannon: Cannon,
+        hiddenLine: HiddenLine,
+
+        effectLineNode: cc.Node,
+
+        zidanshuliang: cc.Node,
+        dangqianhuoli: cc.Node,
+        jindu: cc.Node,
+        curScoreLabel: cc.Label,
+        pointLabel: cc.Label,
+
+        particle: cc.Node,
+
+        effectDesc: cc.RichText,
+
+        quitBtn: cc.Node,
+
+        shashang: cc.Label,
+        jilei: cc.Label,
+        xuyao: cc.Label,
+
+        zidanCount: cc.Label,
+        zidanLimit: cc.Label,
+
+        zidanPrefab: cc.Prefab,
+        baoxiangPrefab: cc.Prefab,
+        fenxiangfuhuoPrefab: cc.Prefab,
+
+        baolieqiu: cc.Node,
+        zhendangbo: cc.Node,
+        baolieqiuLabel: cc.Label,
+        zhendangboLabel: cc.Label,
+
+        keduxian: cc.Node,
+        quitPanel: cc.Prefab,
+        baoxiang: cc.Node,
+        xinshouyindao: cc.Prefab,
+
+        jiantou: cc.Node,
+        lianji: cc.Prefab,
+
+        tipIcon1: cc.Node,
+        tipIcon2: cc.Node,
+        shouqiu: cc.Node,
+        tipPrefab: cc.Prefab
+    },
+
+    initCall: function initCall() {
+        cc.game.on(cc.game.EVENT_HIDE, function () {
+            console.log("游戏进入后台");
+            window.SystemInfo.setStartTime();
+            window.GameData.saveStorage();
+            window.SystemInfo.setServerTime(0);
+        }, this);
+        cc.game.on(cc.game.EVENT_SHOW, function () {
+            console.log("重新返回游戏");
+            window.SystemInfo.setEndTime();
+            window.SystemInfo.refreshServerTime();
+        }, this);
+    },
+
+    onLoad: function onLoad() {
+        this.initCall();
+        window.gameToLobby = true;
+        this.physicsManager = cc.director.getPhysicsManager();
+        this.physicsManager.enabled = true;
+
+        this.itemWidth = 70;
+        this.itemHeight = 70;
+        this.itemStartX = -BBB_Global.Map_width / 2 * this.itemWidth + this.itemWidth / 2;
+        this.itemStartY = BBB_Global.Map_height / 2 * this.itemHeight;
+        this.maxLine = BBB_Global.Map_height - 1;
+
+        this.rnd = new Random();
+        this.rnd.init(Date.now());
+
+        this.balls = [];
+        this.initColors();
+        this.cannon.init();
+        this.initItems();
+        this.initBox();
+        this.initBall();
+        this.initParticles();
+        this.initEffectDesc();
+
+        //初始化小球上限
+        this.initBallCountLimit();
+
+        this.itemGenerater = this.getComponent("bbb_itemGenerater");
+        this.itemGenerater.init(this.rnd);
+
+        this.hiddenLine.init(this);
+        this.shootListen();
+
+        this.reset();
+
+        this.canQuitClick = true;
+        this.hasBtnClick = false;
+        this.quitBtnListen();
+
+        this.showLineTime = 0;
+        this.moveEnd = true;
+        this.canShoot = true;
+        this.cannonListen();
+
+        this.useDaoju = false;
+        this.showBaoxiang = false;
+
+        this.daojuListen();
+        this.daojuUseTip();
+        this.shouqiuListen();
+    },
+
+    shouqiuListen: function shouqiuListen() {
+        var self = this;
+        this.shouqiu.on(cc.Node.EventType.TOUCH_END, function (event) {
+            console.log('点击收球');
+            if (self.usingShouqiu) {
+                return;
+            }
+            window.GameData.setStatisticData(BBB_Global.useShouqiuCnt);
+            self.usingShouqiu = true;
+            //使用收球功能时小球全部回到当前牛仔上方
+            var position = {};
+            position.x = self.cannon.node.x;
+            position.y = self.cannon.node.y + BBB_Global.Ball_CannonOffset;
+            for (var i = 0; i < self.balls.length; i++) {
+                self.balls[i].node.stopAllActions();
+                self.balls[i].getComponent('bbb_ball').isRecycling = false;
+                self.balls[i].getComponent('bbb_ball').rigidBody.active = false;
+                self.balls[i].node.runAction(cc.moveTo(0.1, position));
+            }
+            self.clearLianji();
+            if (self.showBaoxiang) {
+                self.createBaoxiangPanel();
+            } else {
+                self.turnEnd();
+            }
+        }, this);
+    },
+
+    daojuUseTip: function daojuUseTip() {
+        this.baolieqiu.runAction(cc.repeatForever(cc.sequence(cc.scaleTo(1, 0.33, 0.33), cc.scaleTo(1, 0.3, 0.3))));
+        this.zhendangbo.runAction(cc.repeatForever(cc.sequence(cc.scaleTo(1, 0.33, 0.33), cc.scaleTo(1, 0.3, 0.3))));
+    },
+
+    quitBtnListen: function quitBtnListen() {
+        var self = this;
+        this.quitBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (!self.canTouchJudge() || !self.daojuUseEndJudge() || !self.canQuitClick || self.usingDaoju || self.showBaoxiang) {
+                return;
+            }
+            self.hasBtnClick = true;
+            self.canQuitClick = false;
+            self.createAskQuitPanel();
+        }, this);
+    },
+
+    initBallCountLimit: function initBallCountLimit() {
+        this.ballCountLimit = BBB_Global.Ball_Limit;
+        //是否开启土球功能
+        if (window.GameData.curUseBall == 10005) {
+            this.ballCountLimit += BBB_Global.AddBallLimit;
+        }
+    },
+
+    daojuListen: function daojuListen() {
+        var self = this;
+        this.baolieqiu.on(cc.Node.EventType.TOUCH_END, function (event) {
+            console.log("\u70B9\u51FB\u7206\u88C2\u7403\uFF1A" + window.GameData.boomBallCount);
+            if (!self.canTouchJudge()) {
+                return;
+            }
+            self.usingDaoju = true;
+            if (self.canUse_baolie <= 0) {
+                console.log('分享次数', this.baolieqiu_cnt);
+                if (self.baolieqiu_cnt >= 2) {
+                    return;
+                } else {
+                    self.useDaoju = true;
+                    console.log('分享', window.GameData.showShare);
+                    self.getBaolieByShare();
+                }
+            } else {
+                window.GameData.setStatisticData(BBB_Global.useJiahuoliCnt);
+                self.useDaoju = true;
+                self.baoLieQiu();
+                self.canUse_baolie--;
+                console.log('开始存储数据');
+                if (window.GameData.maxBoomBallCount > 0) {
+                    window.GameData.setMaxBoomBallCount(self.canUse_baolie);
+                } else {
+                    window.GameData.setCurBaolieqiuCnt(self.canUse_baolie);
+                }
+                self.baolieqiuLabel.string = self.canUse_baolie.toString();
+
+                setTimeout(function () {
+                    self.saveGame();
+                    setTimeout(function () {
+                        self.usingDaoju = false;
+                    }, 100);
+                }, 1500);
+            }
+        }, this);
+
+        this.zhendangbo.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (!self.canTouchJudge()) {
+                return;
+            }
+            self.usingDaoju = true;
+            if (self.canUse_zhendang <= 0) {
+                if (self.zhendangbo_cnt >= 2) {
+                    return;
+                } else {
+                    self.useDaoju = true;
+                    console.log('分享', window.GameData.showShare);
+                    self.getZhendangByShare();
+                }
+            } else {
+                window.GameData.setStatisticData(BBB_Global.useQuanpingxiaoCnt);
+                self.useDaoju = true;
+                self.zhenDangBo();
+                self.canUse_zhendang--;
+                if (window.GameData.maxShockCount > 0) {
+                    window.GameData.setMaxShockCount(self.canUse_zhendang);
+                } else {
+                    window.GameData.setCurZhendangCnt(self.canUse_zhendang);
+                }
+                self.zhendangboLabel.string = self.canUse_zhendang.toString();
+
+                setTimeout(function () {
+                    self.saveGame();
+                    setTimeout(function () {
+                        self.usingDaoju = false;
+                    }, 100);
+                }, 1500);
+            }
+        }, this);
+    },
+
+    getBaolieByShare: function getBaolieByShare() {
+        if (!this.usingDaoju) {
+            return;
+        }
+        var self = this;
+        if (window.GameData.showShare == false) {
+            self.canUse_baolie++;
+            if (self.canUse_baolie > 1) {
+                self.canUse_baolie = 1;
+            }
+            window.GameData.setCurBaolieqiuCnt(self.canUse_baolie);
+            self.baolieqiu_cnt++;
+            self.baolieqiuLabel.string = self.canUse_baolie.toString();
+            console.log('分享得爆裂球,', self.baolieqiu_cnt, self.canUse_baolie);
+
+            self.saveGame();
+            self.usingDaoju = false;
+        } else {
+            WXHelp.createVideo(window.BannerVedioId.baolie_vedio, function () {
+                self.canUse_baolie++;
+                if (self.canUse_baolie > 1) {
+                    self.canUse_baolie = 1;
+                }
+                window.GameData.setCurBaolieqiuCnt(self.canUse_baolie);
+                self.baolieqiu_cnt++;
+                if (self.canUse_baolie && self.baolieqiuLabel) self.baolieqiuLabel.string = self.canUse_baolie.toString();
+                console.log('分享得爆裂球,', self.baolieqiu_cnt, self.canUse_baolie);
+
+                self.saveGame();
+                self.usingDaoju = false;
+            }, function () {
+                self.shareFunc(function () {
+                    self.canUse_baolie++;
+                    if (self.canUse_baolie > 1) {
+                        self.canUse_baolie = 1;
+                    }
+                    window.GameData.setCurBaolieqiuCnt(self.canUse_baolie);
+                    self.baolieqiu_cnt++;
+                    if (self.canUse_baolie && self.baolieqiuLabel) self.baolieqiuLabel.string = self.canUse_baolie.toString();
+                    console.log('分享得爆裂球,', self.baolieqiu_cnt, self.canUse_baolie);
+
+                    self.saveGame();
+                    self.usingDaoju = false;
+                });
+            }, function () {
+                self.usingDaoju = false;
+            });
+            self.baolieqiuLabel.string = self.canUse_baolie.toString();
+        }
+    },
+
+    getZhendangByShare: function getZhendangByShare() {
+        if (!this.usingDaoju) {
+            return;
+        }
+        var self = this;
+        if (window.GameData.showShare == false) {
+            self.canUse_zhendang++;
+            if (self.canUse_zhendang > 1) {
+                self.canUse_zhendang = 1;
+            }
+            window.GameData.setCurZhendangCnt(self.canUse_zhendang);
+            self.zhendangbo_cnt++;
+            self.zhendangboLabel.string = self.canUse_zhendang.toString();
+            console.log('分享得震荡波,', self.zhendangbo_cnt, self.canUse_zhendang);
+
+            setTimeout(function () {
+                self.saveGame();
+                setTimeout(function () {
+                    self.usingDaoju = false;
+                }, 100);
+            }, 1500);
+        } else {
+            this.shareFunc(function () {
+                if (!self.usingDaoju) {
+                    return;
+                }
+
+                self.canUse_zhendang++;
+                if (self.canUse_zhendang > 1) {
+                    self.canUse_zhendang = 1;
+                }
+                window.GameData.setCurZhendangCnt(self.canUse_zhendang);
+                self.zhendangbo_cnt++;
+                self.zhendangboLabel.string = self.canUse_zhendang.toString();
+                console.log('分享得震荡波,', self.zhendangbo_cnt, self.canUse_zhendang);
+
+                setTimeout(function () {
+                    self.saveGame();
+                    setTimeout(function () {
+                        self.usingDaoju = false;
+                    }, 100);
+                }, 1500);
+            });
+        }
+    },
+
+    showSelect: function showSelect(isShow) {
+        this.selectLayout.active = isShow;
+        this.daojuBtn.active = !isShow;
+    },
+
+    zhenDangBo: function zhenDangBo() {
+        this.clearBoxes();
+        this.clearItems();
+        this.rowMoveContinue();
+    },
+
+    baoLieQiu: function baoLieQiu() {
+        this.useBaolieqiuCnt++;
+        this.damage_level++;
+        cc.sys.localStorage.setItem(BBB_Global.Ball_Damage, this.damage_level);
+        if (this.ballCount < this.ballCountLimit) {
+            this.showTop(true, true, false, true);
+        } else {
+            this.showTop(false, true, true, true);
+        }
+    },
+
+    xiaoSanHang: function xiaoSanHang() {
+        var rows = this.getRows();
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = this.boxList[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var b = _step.value;
+
+                if (b.line == rows - 2 || b.line == rows - 1 || b.line == rows) {
+                    b.line = 0; //该节点所在行提前重置
+                    this.points += b.getComponent("bbb_box").rigidity;
+                    b.getComponent("bbb_box").recycle();
+                }
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+
+        this.pointLabel.string = this.points.toString();
+
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+            for (var _iterator2 = this.itemList[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var item = _step2.value;
+
+                if (item.line == rows - 2 || item.line == rows - 1 || item.line == rows) {
+                    if (item.getComponent("bbb_item").type == BBB_Global.Item_Ball) {
+                        this.addBall();
+                    }
+                }
+                item.getComponent("bbb_item").recycle();
+            }
+        } catch (err) {
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                    _iterator2.return();
+                }
+            } finally {
+                if (_didIteratorError2) {
+                    throw _iteratorError2;
+                }
+            }
+        }
+    },
+
+    getRows: function getRows() {
+        var max = 0;
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
+
+        try {
+            for (var _iterator3 = this.boxList[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                var b = _step3.value;
+
+                if (b.line > max) {
+                    max = b.line;
+                }
+            }
+        } catch (err) {
+            _didIteratorError3 = true;
+            _iteratorError3 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                    _iterator3.return();
+                }
+            } finally {
+                if (_didIteratorError3) {
+                    throw _iteratorError3;
+                }
+            }
+        }
+
+        return max;
+    },
+
+    rowMoveContinue: function rowMoveContinue() {
+        this.generateNewRowItems();
+        this.curScoreLabel.node.active = true;
+        this.curScoreLabel.string = this.curScore;
+    },
+
+    clearBoxes: function clearBoxes() {
+        var _iteratorNormalCompletion4 = true;
+        var _didIteratorError4 = false;
+        var _iteratorError4 = undefined;
+
+        try {
+            for (var _iterator4 = this.boxList[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                var b = _step4.value;
+
+                this.points += b.getComponent("bbb_box").rigidity;
+                b.getComponent("bbb_box").recycle();
+            }
+        } catch (err) {
+            _didIteratorError4 = true;
+            _iteratorError4 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                    _iterator4.return();
+                }
+            } finally {
+                if (_didIteratorError4) {
+                    throw _iteratorError4;
+                }
+            }
+        }
+
+        this.pointLabel.string = this.points.toString();
+    },
+
+    clearItems: function clearItems() {
+        var _iteratorNormalCompletion5 = true;
+        var _didIteratorError5 = false;
+        var _iteratorError5 = undefined;
+
+        try {
+            for (var _iterator5 = this.itemList[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                var item = _step5.value;
+
+                if (item.getComponent("bbb_item").type == BBB_Global.Item_Ball) {
+                    this.addBall();
+                }
+                item.getComponent("bbb_item").recycle();
+            }
+        } catch (err) {
+            _didIteratorError5 = true;
+            _iteratorError5 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                    _iterator5.return();
+                }
+            } finally {
+                if (_didIteratorError5) {
+                    throw _iteratorError5;
+                }
+            }
+        }
+    },
+
+    bangChui: function bangChui() {
+        if (this.boxList.length <= 3) {
+            this.clearBoxes();
+            return;
+        }
+        var boxes = this.boxList;
+        boxes.sort(function (x, y) {
+            return y.getComponent("bbb_box").rigidity - x.getComponent("bbb_box").rigidity;
+        });
+        this.eraseThree(boxes);
+    },
+
+    eraseThree: function eraseThree(boxes) {
+        var _iteratorNormalCompletion6 = true;
+        var _didIteratorError6 = false;
+        var _iteratorError6 = undefined;
+
+        try {
+            for (var _iterator6 = this.boxList[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                var b = _step6.value;
+
+                if (b == boxes[0] || b == boxes[1] || b == boxes[2]) {
+                    b.getComponent("bbb_box").recycle();
+                    this.points += b.getComponent("bbb_box").rigidity;
+                }
+            }
+        } catch (err) {
+            _didIteratorError6 = true;
+            _iteratorError6 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                    _iterator6.return();
+                }
+            } finally {
+                if (_didIteratorError6) {
+                    throw _iteratorError6;
+                }
+            }
+        }
+
+        this.pointLabel.string = this.points.toString();
+    },
+
+    cannonListen: function cannonListen() {
+        this.cannon.node.on(cc.Node.EventType.TOUCH_MOVE, function (event) {
+            if (!this.canTouchJudge()) {
+                return;
+            }
+            this.moveEnd = false;
+            this.canShoot = false;
+            this.cannon.node.opacity = 120;
+            this.cannon.node.x += event.touch.getDelta().x;
+            if (this.cannon.node.x < -220) {
+                this.cannon.node.x = -220;
+            }
+            if (this.cannon.node.x > 220) {
+                this.cannon.node.x = 220;
+            }
+            var _iteratorNormalCompletion7 = true;
+            var _didIteratorError7 = false;
+            var _iteratorError7 = undefined;
+
+            try {
+                for (var _iterator7 = this.balls[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                    var b = _step7.value;
+
+                    b.node.x = this.cannon.node.x;
+                }
+            } catch (err) {
+                _didIteratorError7 = true;
+                _iteratorError7 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                        _iterator7.return();
+                    }
+                } finally {
+                    if (_didIteratorError7) {
+                        throw _iteratorError7;
+                    }
+                }
+            }
+
+            this.hiddenLine.node.active = false;
+        }, this);
+
+        this.cannon.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (!this.canTouchJudge()) {
+                return;
+            }
+            this.moveEnd = true;
+            this.cannon.node.opacity = 255;
+            this.cannon.rotationDegree = 0;
+            this.hiddenLine.node.active = true;
+            this.hiddenLine.drawTrack();
+        }, this);
+
+        this.cannon.node.on(cc.Node.EventType.TOUCH_CANCEL, function (event) {
+            if (!this.canTouchJudge()) {
+                return;
+            }
+            this.moveEnd = true;
+            this.cannon.node.opacity = 255;
+            this.cannon.rotationDegree = 0;
+            this.hiddenLine.node.active = true;
+            this.hiddenLine.drawTrack();
+        }, this);
+    },
+
+    shootListen: function shootListen() {
+        this.node.on(cc.Node.EventType.TOUCH_MOVE, function (event) {
+            if (!this.canTouchJudge() || !this.cannonMoveEndJudge() || !this.daojuUseEndJudge() || this.hasBtnClick) {
+                if (this.hasBtnClick) {
+                    this.hasBtnClick = false;
+                }
+                return;
+            }
+            if (!this.vaildTouchJudge(event.touch._point.y)) {
+                return;
+            }
+            var pos1 = this.balls[0].node.parent.convertToNodeSpaceAR(event.touch._point);
+            var pos2 = this.balls[0].node.getPosition();
+            //根据小球坐标和触摸坐标求发射角度
+            this.cannon.rotationDegree = this.hiddenLine.calRotationDegree(pos2.x, pos2.y, pos1.x, pos1.y);
+            if (this.cannon.rotationDegree < this.cannon.minRotationLimit) {
+                this.cannon.rotationDegree = this.cannon.minRotationLimit;
+            }
+            if (this.cannon.rotationDegree > this.cannon.maxRotationLimit) {
+                this.cannon.rotationDegree = this.cannon.maxRotationLimit;
+            }
+            this.hiddenLine.drawTrack();
+        }, this);
+
+        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            var _this = this;
+
+            if (!this.canTouchJudge() || !this.cannonMoveEndJudge() || !this.daojuUseEndJudge() || this.hasBtnClick) {
+                if (this.hasBtnClick) {
+                    this.hasBtnClick = false;
+                }
+                return;
+            }
+            if (!this.vaildTouchJudge(event.touch._point.y)) {
+                return;
+            }
+            this.turnStart();
+            var pos = this.balls[0].node.position;
+            var delay = 0;
+            var interval = 0.08;
+
+            var total = this.ballCount;
+            var self = this;
+
+            var _loop = function _loop(index) {
+                var ball = _this.balls[index];
+
+                setTimeout(function () {
+                    ball.shoot();
+                    total--;
+                    if (total == 0) {
+                        _this.showShouqiuBtn = true;
+                    }
+                }, delay);
+
+                delay += interval * 1000;
+            };
+
+            for (var index = 0; index < this.balls.length; index++) {
+                _loop(index);
+            }
+
+            //上一个回合新增的小球
+
+            var _loop2 = function _loop2(index) {
+                var ball = _this.getBall();
+                ball.node.position = pos;
+                _this.balls.push(ball);
+
+                setTimeout(function () {
+                    ball.shoot();
+                    total--;
+                    if (total == 0) {
+                        _this.showShouqiuBtn = true;
+                    }
+                }, delay);
+
+                delay += interval * 1000;
+            };
+
+            for (var index = 0; index < this.turnNewBallCount; index++) {
+                _loop2(index);
+            }
+            this.turnNewBallCount = 0;
+        }, this);
+
+        this.node.on(cc.Node.EventType.TOUCH_START, function (event) {
+            if (!this.canTouchJudge() || !this.cannonMoveEndJudge() || !this.daojuUseEndJudge() || this.hasBtnClick) {
+                if (this.hasBtnClick) {
+                    this.hasBtnClick = false;
+                }
+                return;
+            }
+            if (!this.vaildTouchJudge(event.touch._point.y)) {
+                return;
+            }
+            var pos1 = this.balls[0].node.parent.convertToNodeSpaceAR(event.touch._point);
+            var pos2 = this.balls[0].node.getPosition();
+            //根据小球坐标和触摸坐标求发射角度
+            this.cannon.rotationDegree = this.hiddenLine.calRotationDegree(pos2.x, pos2.y, pos1.x, pos1.y);
+            if (this.cannon.rotationDegree < this.cannon.minRotationLimit) {
+                this.cannon.rotationDegree = this.cannon.minRotationLimit;
+            }
+            if (this.cannon.rotationDegree > this.cannon.maxRotationLimit) {
+                this.cannon.rotationDegree = this.cannon.maxRotationLimit;
+            }
+            this.hiddenLine.drawTrack();
+        }, this);
+    },
+
+    vaildTouchJudge: function vaildTouchJudge(y) {
+        if (y < 200 || y > 960) {
+            return false;
+        }
+        return true;
+    },
+
+
+    canTouchJudge: function canTouchJudge() {
+        if (this.gameOver || this.isRun || this.isPause || new Date().getTime() - this.showLineTime <= 700) {
+            return false;
+        }
+        return true;
+    },
+
+    cannonMoveEndJudge: function cannonMoveEndJudge() {
+        if (this.moveEnd) {
+            if (!this.canShoot) {
+                this.canShoot = true;
+                return false;
+            }
+        } else {
+            return false;
+        }
+        return true;
+    },
+
+    daojuUseEndJudge: function daojuUseEndJudge() {
+        if (this.baolieqiu.opacity == 255 && this.zhendangbo.opacity == 255) {
+            if (this.useDaoju) {
+                this.useDaoju = false;
+                return false;
+            }
+        } else {
+            return false;
+        }
+        return true;
+    },
+
+    teachNewUser: function teachNewUser() {
+        var self = this;
+        this.isPause = true;
+        setTimeout(function () {
+            var node = cc.instantiate(self.xinshouyindao);
+            node.parent = self.node;
+            node.active = true;
+            node.getChildByName('donghua').getComponent('sp.Skeleton').setAnimation(0, "dian", true);
+            node.getChildByName('donghua').getComponent('sp.Skeleton').setAnimation(0, "hua", true);
+
+            setTimeout(function () {
+                node.destroy();
+                self.isPause = false;
+            }, 2000);
+        }, 500);
+    },
+
+    startStatistics: function startStatistics() {
+        this.ball_count = 0;
+        if (window.GameData.curUseBall == 10004) {
+            //火球专属初始伤害
+            this.damage_level = 3;
+        } else {
+            this.damage_level = 1;
+        }
+        cc.sys.localStorage.setItem(BBB_Global.Ball_Damage, this.damage_level);
+
+        this.points = 0;
+        this.pointLabel.string = this.points.toString();
+
+        if (window.GameData.isFirst) {
+            this.teachNewUser();
+            window.GameData.setIsFirstJudge(false);
+        }
+
+        if (window.GameData.maxBoomBallCount > 0) {
+            this.canUse_baolie = window.GameData.maxBoomBallCount;
+        } else {
+            this.canUse_baolie = 0;
+            window.GameData.setCurBaolieqiuCnt(this.canUse_baolie);
+        }
+
+        if (window.GameData.maxShockCount > 0) {
+            this.canUse_zhendang = window.GameData.maxShockCount;
+        } else {
+            this.canUse_zhendang = 0;
+            window.GameData.setCurZhendangCnt(this.canUse_zhendang);
+        }
+
+        this.baolieqiu_cnt = 0;
+        this.zhendangbo_cnt = 0;
+        this.baolieqiuLabel.string = this.canUse_baolie.toString();
+        this.zhendangboLabel.string = this.canUse_zhendang.toString();
+
+        if (cc.sys.localStorage.getItem(BBB_Global.GameType) == 1) {
+            this.ballCount = 10;
+        } else if (cc.sys.localStorage.getItem(BBB_Global.GameType) == 2) {
+            this.ballCount = 30;
+            if (window.GameData.curUseBall == 10004) {
+                this.damage_level += 3;
+            } else {
+                this.damage_level += 2;
+            }
+            cc.sys.localStorage.setItem(BBB_Global.Ball_Damage, this.damage_level);
+        }
+        this.first_level = this.damage_level;
+        this.jindu_fenzi = 0;
+        if (window.GameData.curUseBall == 10005) {
+            this.jindu_fenmu = (this.damage_level - this.first_level + 1) * (BBB_Global.Upgrade_Condition - 3);
+        } else {
+            this.jindu_fenmu = (this.damage_level - this.first_level + 1) * BBB_Global.Upgrade_Condition;
+        }
+
+        this.fenxiangCount = 1;
+        this.useBaolieqiuCnt = 0;
+    },
+
+    reset: function reset() {
+        this.keduxian.getComponent('sp.Skeleton').setAnimation(0, "yidong", false);
+        this.keduxian.getComponent('sp.Skeleton').setAnimation(0, "jieshu", false);
+        //是否正在使用道具
+        this.usingDaoju = false;
+
+        this.gameOver = false;
+        this.isPause = false;
+        this.isRun = false;
+        this.curScore = 0;
+        this.difficulty = this.rnd.rand(4); //随机难度
+        this.historyMaxScore = parseInt(cc.sys.localStorage.getItem(BBB_Global.MaxScoreKey)) || 0;
+        this.stopBallCount = 0; //停止的小球数量
+        this.turnNewBallCount = 0; //回合新增的小球数量
+        this.recycleFirstBall = null; //第一个被回收的球
+        this.effectLineNode.active = false;
+        this.ballCount = 1;
+
+        if (!cc.sys.localStorage.getItem(BBB_Global.SaveGameKey)) {
+            this.startStatistics();
+            this.showZidankuang();
+            this.showTop(true, true, false);
+        }
+
+        for (var index = 0; index < this.balls.length; index++) {
+            var _ball = this.balls[index];
+            this.ballPool.put(_ball.node);
+        }
+        this.balls = [];
+
+        for (var _index = 0; _index < this.boxList.length; _index++) {
+            var box = this.boxList[_index];
+            box.getComponent("bbb_box").doRecycle();
+            this.boxPool.put(box);
+        }
+        this.boxList = [];
+
+        for (var _index2 = 0; _index2 < this.itemList.length; _index2++) {
+            var item = this.itemList[_index2];
+            item.getComponent("bbb_item").doRecycle();
+            this.itemPool.put(item);
+        }
+        this.itemList = [];
+
+        //重新开始时发射器位置重置（居中）
+        this.cannon.node.x = 0;
+        this.cannon.rotationDegree = 0;
+    },
+
+
+    showZidankuang: function showZidankuang() {
+        this.zidankuang = this.node.getChildByName('zidankuang');
+        this.zidankuang.removeAllChildren();
+        for (var i = 0; i < this.ballCountLimit; i++) {
+            var node = cc.instantiate(this.zidanPrefab);
+            node.name = i.toString();
+            if (this.ballCountLimit > 30) {
+                node.setScale(0.5, 0.5);
+            }
+            this.zidankuang.addChild(node);
+        }
+    },
+
+    start: function start() {
+        if (!this.loadGame()) {
+            this.generateNewRowItems();
+            //统计进入该游戏模式的次数
+            var type = cc.sys.localStorage.getItem(BBB_Global.GameType);
+            window.GameData.setStatisticData(type);
+        } else {
+            this.showEffectDesc();
+        }
+
+        for (var index = 0; index < this.ballCount; index++) {
+            this.balls.push(this.getBall());
+        }
+
+        this.hiddenLine.drawTrack();
+        this.curScoreLabel.string = this.curScore;
+    },
+    showTop: function showTop(isShow1, isShow2, isShow3, flag) {
+        this.zidanshuliang.active = isShow1;
+        if (isShow1) {
+            this.zidanCount.string = this.ballCount.toString();
+            this.zidanLimit.string = this.ballCountLimit.toString();
+        }
+        this.dangqianhuoli.active = isShow2;
+        if (isShow2) {
+            this.shashang.string = this.damage_level.toString();
+            if (flag) {
+                this.shashang.node.runAction(cc.sequence(cc.scaleTo(0.5, 0.7, 0.7), cc.scaleTo(0.5, 0.3, 0.3)));
+            }
+        }
+        this.jindu.active = isShow3;
+        if (isShow3) {
+            this.jilei.string = this.jindu_fenzi.toString();
+            this.xuyao.string = this.jindu_fenmu.toString();
+        }
+
+        for (var i = 0; i < this.zidankuang.childrenCount; i++) {
+            if (i < this.ballCount) {
+                this.zidankuang.getChildByName(i.toString()).color = new cc.color(255, 255, 255, 255);
+            } else {
+                this.zidankuang.getChildByName(i.toString()).color = new cc.color(100, 100, 100, 255);
+            }
+        }
+    },
+
+
+    update: function update(dt) {
+        if (!this.canTouchJudge()) {
+            this.quitBtn.color = new cc.color(100, 100, 100, 255);
+            this.baolieqiu.opacity = 100;
+            this.zhendangbo.opacity = 100;
+        } else {
+            if (!this.daojuUseEndJudge() || !this.canQuitClick || this.usingDaoju || this.showBaoxiang) {
+                this.quitBtn.color = new cc.color(100, 100, 100, 255);
+            } else {
+                this.quitBtn.color = new cc.color(255, 255, 255, 255);
+            }
+            this.baolieqiu.opacity = 255;
+            this.zhendangbo.opacity = 255;
+        }
+
+        if (this.baolieqiu_cnt >= 2 && this.canUse_baolie <= 0) {
+            this.baolieqiu.stopAllActions();
+            this.baolieqiu.active = false;
+            this.tipIcon1.active = false;
+        } else {
+            this.baolieqiu.active = true;
+            this.tipIcon1.active = true;
+        }
+        if (this.zhendangbo_cnt >= 2 && this.canUse_zhendang <= 0) {
+            this.zhendangbo.stopAllActions();
+            this.zhendangbo.active = false;
+            this.tipIcon2.active = false;
+        } else {
+            this.zhendangbo.active = true;
+            this.tipIcon2.active = true;
+        }
+
+        if (this.showShouqiuBtn) {
+            if (this.stopBallCount === this.balls.length) {
+                this.shouqiu.active = false;
+            } else {
+                this.shouqiu.active = true;
+            }
+        } else {
+            this.shouqiu.active = false;
+        }
+
+        if (!this.isRun && !this.isPause && !this.gameOver) {
+            var json = this.showGetSkinTip();
+            if (json) {
+                this.createTipPanel(json);
+            }
+        }
+    },
+
+    createTipPanel: function createTipPanel(json) {
+        this.isPause = true;
+        var tipPanel = cc.instantiate(this.tipPrefab);
+        tipPanel.parent = this.node;
+        tipPanel.getComponent('tipPanel').init(this, json.name, json.index);
+    },
+
+    //重新开始
+    restart: function restart() {
+        cc.sys.localStorage.removeItem(BBB_Global.SaveGameKey);
+        this.reset();
+        this.start();
+    },
+    horizontalShootTest: function horizontalShootTest() {
+        var delay = 0.2;
+        var self = this;
+        for (var index = 0; index < 10; index++) {
+
+            setTimeout(function () {
+                var ball = self.getBall();
+                ball.node.position = cc.v2(0, 310);
+                ball.horizontalShoot();
+            }, delay * 1000);
+
+            delay += 0.1;
+        }
+    },
+    onDestroy: function onDestroy() {
+        this.physicsManager.enabled = false;
+    },
+    initEffectDesc: function initEffectDesc() {
+        var bActive = this.cannon.isPowerCannon();
+        this.effectDesc.node.active = bActive;
+        this.cannonPowerTurn = BBB_Global.Cannon_power_turn;
+    },
+    showEffectDesc: function showEffectDesc() {
+        if (this.cannon.isPowerCannon()) {
+            var d = this.curScore % BBB_Global.Cannon_power_turn;
+            var n = 0;
+            if (d > 0) {
+                n = BBB_Global.Cannon_power_turn - d;
+            }
+            this.effectDesc.string = this.cannon.getEffectDesc(n);
+        }
+    },
+
+
+    //box每一行一种颜色
+    initColors: function initColors() {
+        this.colors = [cc.color(255, 215, 0, 255), cc.color(255, 141, 0, 255), cc.color(145, 213, 86, 255), cc.color(0, 255, 255, 255), cc.color(64, 104, 225, 255), cc.color(255, 0, 255, 255), cc.color(199, 20, 133, 255), cc.color(179, 34, 34, 255)];
+    },
+
+
+    //粒子效果
+    initParticles: function initParticles() {
+        this.particlePool = new cc.NodePool();
+        for (var index = 0; index < 5; index++) {
+            var node = cc.instantiate(this.particle);
+            this.particlePool.put(node);
+        }
+    },
+    createParticle: function createParticle(pos) {
+        var node = null;
+        if (this.particlePool.size() > 0) {
+            node = this.particlePool.get();
+        } else {
+            node = cc.instantiate(this.particle);
+        }
+        node.parent = this.node;
+        node.position = pos;
+        node.active = true;
+
+        var particle = node.getComponent(cc.ParticleSystem);
+        particle.resetSystem();
+
+        var self = this;
+        setTimeout(function () {
+            self.recycleParticle(particle);
+        }, 1 * 1000);
+
+        return node;
+    },
+    recycleParticle: function recycleParticle(particle) {
+        if (this.isPause) {
+            return;
+        }
+        particle.stopSystem();
+        this.particlePool.put(particle.node);
+    },
+    initItems: function initItems() {
+        this.itemList = [];
+
+        var initItemCount = 20;
+        this.itemPool = new cc.NodePool();
+        for (var index = 0; index < initItemCount; index++) {
+            var item = cc.instantiate(this.itemPrefab);
+            this.itemPool.put(item);
+        }
+    },
+    getItem: function getItem(type, effectType) {
+        var node = null;
+        if (this.itemPool.size() > 0) {
+            node = this.itemPool.get();
+        } else {
+            node = cc.instantiate(this.itemPrefab);
+        }
+        node.opacity = 255;
+        node.getComponent("bbb_item").init(this, type, effectType);
+        node.parent = this.node;
+
+        this.itemList.push(node);
+        return node;
+    },
+    recycleItem: function recycleItem(item) {
+        item.stopAllActions();
+
+        var index = this.itemList.indexOf(item);
+        if (index > -1) {
+            this.itemList.splice(index, 1);
+        }
+
+        this.itemPool.put(item);
+    },
+
+
+    //初始化箱子
+    initBox: function initBox() {
+        this.boxList = [];
+
+        var initBoxCount = 40;
+        this.boxPool = new cc.NodePool();
+        for (var index = 0; index < initBoxCount; index++) {
+            var box = cc.instantiate(this.boxPrefab);
+            this.boxPool.put(box);
+        }
+
+        this.boxWidth = 70;
+        this.boxHeight = 70;
+        this.boxStartX = -7 / 2 * this.boxWidth + this.boxWidth / 2;
+        this.boxStartY = -8 / 2 * this.boxHeight + this.boxHeight;
+    },
+    getBox: function getBox(shape, number) {
+        var node = null;
+        if (this.boxPool.size() > 0) {
+            node = this.boxPool.get();
+        } else {
+            node = cc.instantiate(this.boxPrefab);
+        }
+        node.getComponent("bbb_box").init(this, shape, number);
+        node.parent = this.node;
+
+        this.boxList.push(node);
+        return node;
+    },
+    placeBox: function placeBox() {
+        var boxWidth = 70;
+        var boxHeight = 70;
+
+        var startX = -7 / 2 * boxWidth + boxWidth / 2;
+        var startY = 8 / 2 * boxHeight;
+
+        var x = startX;
+        var y = startY;
+
+        var rnd = new Random();
+
+        for (var row = 0; row < 8; row++) {
+            for (var col = 0; col < 7; col++) {
+                var type = rnd.rand(3);
+                var box = this.getBox(type, 1);
+                box.position = cc.v2(x, y);
+                x += boxWidth;
+            }
+            x = startX;
+            y -= boxHeight;
+        }
+    },
+    recycleBox: function recycleBox(box) {
+        box.stopAllActions();
+
+        var index = this.boxList.indexOf(box);
+        if (index > -1) {
+            this.boxList.splice(index, 1);
+        }
+
+        this.boxPool.put(box);
+
+        //粒子效果
+        this.createParticle(box.position);
+        AudioHelp.playEffect(window.AudioName.SFX_NUMBER_BROKEN, 1);
+    },
+    _playAnim: function _playAnim(anim, animName) {
+        var state = anim.getAnimationState(animName);
+        if (!state.isPlaying) {
+            anim.play();
+
+            var node = anim.node;
+            var dur = 0.25;
+            var ds = 30;
+            node.runAction(cc.sequence(cc.moveBy(dur, ds, 0), cc.moveBy(dur * 2, -ds * 2, 0), cc.moveBy(dur, ds, 0)));
+        }
+    },
+
+
+    //初始化小球
+    initBall: function initBall() {
+        //根据存档数量来创建
+        // let initBallCount = 20;
+        var initBallCount = 35;
+        this.ballPool = new cc.NodePool();
+        for (var index = 0; index < initBallCount; index++) {
+            var _ball2 = cc.instantiate(this.ballPrefab);
+            this.ballPool.put(_ball2);
+        }
+    },
+    getBall: function getBall() {
+        var node = null;
+        if (this.ballPool.size() > 0) {
+            node = this.ballPool.get();
+        } else {
+            node = cc.instantiate(this.ballPrefab);
+        }
+        node.parent = this.node;
+
+        var ball = node.getComponent("bbb_ball");
+        ball.init(this);
+
+        return ball;
+    },
+    recycleBall: function recycleBall(ball) {
+        this.ballPool.put(ball);
+    },
+
+
+    //小球碰撞到底部
+    onBallCollideGround: function onBallCollideGround(ball) {
+        this.stopBallCount++;
+
+        var pos = null;
+        if (this.stopBallCount === 1) {
+            ball.y = this.cannon.node.y + BBB_Global.Ball_CannonOffset;
+            this.recycleFirstBall = ball;
+        } else {
+            pos = this.recycleFirstBall.position;
+        }
+
+        if (this.stopBallCount === this.balls.length) {
+            this.clearLianji();
+            if (this.showBaoxiang) {
+                this.createBaoxiangPanel();
+            } else {
+                this.turnEnd();
+            }
+        }
+        return pos;
+    },
+
+
+    clearLianji: function clearLianji() {
+        this.lianji_cnt = 0;
+        var node = this.node.getChildByName('lian_ji');
+        if (node) {
+            node.destroy();
+        }
+    },
+
+    onBallCollideBox: function onBallCollideBox() {
+        // AudioHelp.playEffect(window.AudioName.SFX_NUMBER_KNOCK,1);
+    },
+    addBall: function addBall() {
+        if (this.ballCount < this.ballCountLimit) {
+            this.turnNewBallCount++;
+            this.ballCount++;
+            if (this.ballCount == this.ballCountLimit) {
+                this.showTop(false, true, true);
+            } else {
+                this.showTop(true, true, false);
+            }
+        } else {
+            this.ball_count++;
+            var condition = -1;
+            if (window.GameData.curUseBall == 10005) {
+                condition = (this.damage_level - this.first_level - this.useBaolieqiuCnt + 1) * (BBB_Global.Upgrade_Condition - 3);
+                if (condition > 35) {
+                    condition = 35;
+                }
+            } else {
+                condition = (this.damage_level - this.first_level - this.useBaolieqiuCnt + 1) * BBB_Global.Upgrade_Condition;
+                if (condition > 30) {
+                    condition = 30;
+                }
+            }
+            if (this.ball_count == condition) {
+                this.damage_level++;
+                if (window.GameData.curUseBall == 10005) {
+                    condition = (this.damage_level - this.first_level - this.useBaolieqiuCnt + 1) * (BBB_Global.Upgrade_Condition - 3);
+                    if (condition > 35) {
+                        condition = 35;
+                    }
+                } else {
+                    condition = (this.damage_level - this.first_level - this.useBaolieqiuCnt + 1) * BBB_Global.Upgrade_Condition;
+                    if (condition > 30) {
+                        condition = 30;
+                    }
+                }
+                cc.sys.localStorage.setItem(BBB_Global.Ball_Damage, this.damage_level);
+                this.ball_count = 0;
+            }
+            this.jindu_fenzi = this.ball_count;
+            this.jindu_fenmu = condition;
+            this.showTop(false, true, true);
+        }
+    },
+    addCoin: function addCoin() {
+        this.showBaoxiang = true;
+
+        this.baoxiang.active = true;
+        this.baoxiang.runAction(cc.sequence(cc.scaleTo(0.5, 0.8, 0.8), cc.scaleTo(0.5, 0.5, 0.5)));
+    },
+
+
+    floorAnimation: function floorAnimation(curScore) {
+        var self = this;
+        if (curScore > 1) {
+            this.jiantou.active = true;
+            this.keduxian.getComponent('sp.Skeleton').setAnimation(0, "yidong", true);
+            setTimeout(function () {
+                setTimeout(function () {
+                    self.jiantou.active = false;
+                }, 250);
+                self.keduxian.getComponent('sp.Skeleton').setAnimation(0, "jieshu", true);
+            }, 750);
+        }
+    },
+
+    generateNewRowItems: function generateNewRowItems() {
+        var node = this.node.getChildByName('bao_xiang');
+        if (node) {
+            console.log("\u5B9D\u7BB1\u754C\u9762\u672A\u9500\u6BC1\uFF1A" + this.showBaoxiang);
+            this.baoxiang.active = false;
+            node.destroy();
+            this.showBaoxiang = false;
+        }
+
+        this.curScore++;
+        if (this.curScore % BBB_Global.CLAP_CONDITION == 0) {
+            AudioHelp.playEffect(window.AudioName.FIFTY_LEVEL, 1);
+        }
+        this.showEffectDesc();
+
+        var newRowItems = this.itemGenerater.generate(this.curScore, this.difficulty);
+        var x = this.itemStartX;
+        var y = this.itemStartY;
+        for (var i = 0; i < newRowItems.length; i++) {
+            var data = newRowItems[i];
+
+            var item = null;
+
+            switch (data.type) {
+
+                case BBB_Global.Item_Box:
+                    item = this.getBox(data.shape, data.value);
+                    item.color = this.colors[0];
+                    item.prevColor = this.colors[0];
+                    item.colorLevel = 0;
+                    break;
+
+                case BBB_Global.Item_Effect:
+                case BBB_Global.Item_Coin:
+                case BBB_Global.Item_Ball:
+                    item = this.getItem(data.type, data.effectType);
+                    break;
+
+                case BBB_Global.Item_Empty:
+                    //nothing
+                    break;
+            }
+
+            if (item) {
+                item.line = 0;
+                item.position = cc.v2(x, y);
+                // item.runAction( cc.moveBy(1, 0, -70) );
+                item.runAction(cc.moveBy(0.5, 0, -70));
+            }
+            x += this.itemWidth;
+        }
+    },
+
+
+    //所有小球回收，算一个回合的结束
+    turnEnd: function turnEnd() {
+        var node = this.node.getChildByName('bao_xiang');
+        if (node) {
+            console.log("\u5B9D\u7BB1\u754C\u9762\u672A\u9500\u6BC1\uFF1A" + this.showBaoxiang);
+            this.baoxiang.active = false;
+            node.destroy();
+            this.showBaoxiang = false;
+        }
+
+        this.showShouqiuBtn = null;
+        this.showLineTime = new Date().getTime();
+        this.isRun = false;
+
+        var cannonNode = this.cannon.node;
+        if (this.usingShouqiu == null && this.recycleFirstBall) {
+            cannonNode.runAction(cc.sequence(cc.delayTime(0.2),
+
+            // cc.moveTo( 0.5, cc.v2(this.recycleFirstBall.x, cannonNode.y) ),
+            cc.moveTo(0.1, cc.v2(this.recycleFirstBall.x, cannonNode.y))));
+        }
+        this.usingShouqiu = null;
+
+        this.recycleFirstBall = null;
+
+        var hiddenLineNode = this.hiddenLine.node;
+        hiddenLineNode.active = true;
+        hiddenLineNode.scale = 0;
+        hiddenLineNode.runAction(cc.sequence(cc.delayTime(0.7), cc.scaleTo(0, 1), cc.callFunc(function () {
+            this.hiddenLine.drawTrack();
+        }.bind(this))));
+
+        //回收道具
+        for (var index = 0; index < this.itemList.length; index++) {
+            var item = this.itemList[index];
+            if (item.turnEndRecycleFlag) {
+                item.getComponent("bbb_item").recycle();
+            }
+        }
+
+        var maxBoxLine = this.moveAllItems();
+
+        //新的一行
+        this.generateNewRowItems();
+
+        //是否开启金球功能
+        if (this.canUseGlodBallFunJudge()) {
+            BBB_Global.Cannon_BrokenBox = true;
+        } else {
+            BBB_Global.Cannon_BrokenBox = false;
+        }
+
+        this.floorAnimation(this.curScore);
+        this.curScoreLabel.node.active = true;
+        this.curScoreLabel.string = this.curScore;
+        this.curScoreLabel.node.runAction(cc.sequence(cc.scaleTo(0.5, 0.35, 0.35), cc.scaleTo(0.5, 0.2, 0.2)));
+
+        if (maxBoxLine >= this.maxLine) {
+            if (this.fenxiangCount > 0) {
+                if (window.GameData.showShare == false) {
+                    this.gameLose();
+                } else {
+                    this.createFenxiangfuhuoPanel();
+                }
+            } else {
+                this.gameLose();
+            }
+        } else {
+            //等移动完成后再保存游戏
+            var self = this;
+            setTimeout(function () {
+                self.saveGame();
+            }, 1.5 * 1000);
+        }
+    },
+
+
+    createFenxiangfuhuoPanel: function createFenxiangfuhuoPanel() {
+        var self = this;
+        this.isPause = true;
+        var panel = cc.instantiate(this.fenxiangfuhuoPrefab);
+        panel.parent = this.node;
+        panel.active = true;
+
+        var fxfh = panel.getChildByName('button-fenxiangfuhuo');
+        fxfh.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (cc.sys.platform == cc.sys.WECHAT_GAME) {
+                if (window.GameData.showShare == false) {
+                    setTimeout(function () {
+                        self.isPause = false;
+                        self.fenxiangCount--;
+                        self.zhenDangBo();
+                    }, 700);
+
+                    setTimeout(function () {
+                        self.saveGame();
+                    }, 1.5 * 1000);
+                    panel.destroy();
+                } else {
+                    self.shareFunc(function () {
+                        window.GameData.setStatisticData(BBB_Global.goOnByShareCnt);
+                        setTimeout(function () {
+                            self.isPause = false;
+                            self.fenxiangCount--;
+                            self.zhenDangBo();
+                        }, 700);
+
+                        setTimeout(function () {
+                            self.saveGame();
+                        }, 1.5 * 1000);
+                        panel.destroy();
+                    });
+                }
+            } else {
+                setTimeout(function () {
+                    self.isPause = false;
+                    self.zhenDangBo();
+                }, 300);
+                setTimeout(function () {
+                    self.saveGame();
+                }, 1.5 * 1000);
+                panel.destroy();
+            }
+        }, this);
+
+        var tiaoguo = panel.getChildByName('button-dianji');
+        tiaoguo.active = false;
+        setTimeout(function () {
+            tiaoguo.active = true;
+        }, 1500);
+        tiaoguo.on(cc.Node.EventType.TOUCH_END, function (event) {
+            self.gameLose();
+            panel.destroy();
+        }, this);
+
+        var guanbi = panel.getChildByName('guanbi');
+        guanbi.active = false;
+        setTimeout(function () {
+            guanbi.active = true;
+        }, 1500);
+        guanbi.on(cc.Node.EventType.TOUCH_END, function (event) {
+            self.gameLose();
+            panel.destroy();
+        }, this);
+    },
+
+    canUseGlodBallFunJudge: function canUseGlodBallFunJudge() {
+        if (window.GameData.curUseBall == 10001) {
+            if (this.curScore % 7 == 0) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    //所有上一回合的都向下移动一行
+    moveAllItems: function moveAllItems() {
+        var _this2 = this;
+
+        var maxBoxLine = 0;
+
+        //移动box
+        for (var index = 0; index < this.boxList.length; index++) {
+            var box = this.boxList[index];
+            // box.runAction( cc.moveBy(1, 0, -70) );
+            box.runAction(cc.moveBy(0.5, 0, -70));
+
+            box.prevColor = this.colors[box.line];
+            box.line++;
+            box.colorLevel = box.line;
+
+            if (box.line < this.colors.length) {
+                box.runAction(cc.tintTo(1, this.colors[box.line]));
+            }
+
+            if (box.line > maxBoxLine) {
+                maxBoxLine = box.line;
+            }
+        }
+
+        //移动item
+
+        var _loop3 = function _loop3(_index3) {
+            var item = _this2.itemList[_index3];
+            item.line++;
+
+            if (item.line > _this2.maxLine) {
+                item.runAction(cc.sequence(cc.spawn(
+                // cc.moveBy(1, 0, -70),
+                cc.moveBy(0.5, 0, -70), cc.fadeOut(1)), cc.callFunc(function () {
+                    item.getComponent("bbb_item").recycle();
+                }.bind(_this2))));
+            } else {
+                // item.runAction( cc.moveBy(1, 0, -70) );
+                item.runAction(cc.moveBy(0.5, 0, -70));
+            }
+        };
+
+        for (var _index3 = 0; _index3 < this.itemList.length; _index3++) {
+            _loop3(_index3);
+        }
+
+        return maxBoxLine;
+    },
+
+
+    createLianji: function createLianji() {
+        this.lianji_cnt = 0;
+        var node = cc.instantiate(this.lianji);
+        node.parent = this.node;
+        node.setPosition(120, 120);
+        node.name = 'lian_ji';
+        node.active = false;
+    },
+
+    //点击确认按钮，发射小球算一个回合的开始
+    turnStart: function turnStart() {
+        this.createLianji();
+        this.stopBallCount = 0;
+        this.hiddenLine.node.active = false;
+        this.isRun = true;
+    },
+
+
+    //根据pos返回行列
+    getCoordFromPosition: function getCoordFromPosition(pos) {
+        var row = Math.ceil((this.itemStartY - pos.y - this.itemHeight / 2) / this.itemHeight);
+        var col = Math.ceil((pos.x - this.itemStartX - this.itemWidth / 2) / this.itemWidth);
+        row = Math.abs(row);
+        col = Math.abs(col);
+        return { "row": row, "col": col };
+    },
+    getPositionFromCoord: function getPositionFromCoord(coord) {
+        var y = this.itemStartY - coord.row * this.itemWidth;
+        var x = this.itemStartX + coord.col * this.itemHeight;
+        return cc.v2(x, y);
+    },
+
+
+    //线效果
+    lineEffect: function lineEffect(isHorizontal, pos) {
+        this._lineEffect(isHorizontal, pos);
+
+        this.effectLineNode.active = true;
+        if (isHorizontal) {
+            this.effectLineNode.rotation = 0;
+            this.effectLineNode.x = 0;
+            this.effectLineNode.y = pos.y;
+            this.effectLineNode.width = this.node.width;
+        } else {
+            this.effectLineNode.rotation = 90;
+            this.effectLineNode.x = pos.x;
+            this.effectLineNode.y = 0;
+            this.effectLineNode.width = this.node.height - 110;
+        }
+
+        var self = this;
+        setTimeout(function () {
+            if (self.effectLineNode) {
+                self.effectLineNode.active = false;
+            }
+            // }, 0.1 * 1000);
+        }, 1000);
+    },
+    _lineEffect: function _lineEffect(isHorizontal, pos) {
+        var coord = this.getCoordFromPosition(pos);
+        var row = coord.row;
+        var col = coord.col;
+
+        var beHitBoxList = [];
+        if (isHorizontal) {
+            for (var i = 0; i < this.boxList.length; i++) {
+                var box = this.boxList[i];
+                var boxCoord = this.getCoordFromPosition(box.position);
+                if (boxCoord.row === row) {
+                    beHitBoxList.push(box);
+                }
+            }
+        } else {
+            for (var _i = 0; _i < this.boxList.length; _i++) {
+                var _box = this.boxList[_i];
+                var _boxCoord = this.getCoordFromPosition(_box.position);
+                if (_boxCoord.col === col) {
+                    beHitBoxList.push(_box);
+                }
+            }
+        }
+
+        for (var _i2 = 0; _i2 < beHitBoxList.length; _i2++) {
+            var _box2 = beHitBoxList[_i2];
+            _box2.getComponent("bbb_box").beHit();
+        }
+    },
+
+
+    //随机方向效果
+    randomDirectionEffect: function randomDirectionEffect(ballNode) {
+        var randDegree = this.rnd.rand(-90, 90);
+        ballNode.randomRotation = randDegree;
+    },
+
+
+    //放置随机方向
+    placeRandomDirectionEffect: function placeRandomDirectionEffect(yPosition) {
+        var item = this.getItem(BBB_Global.Item_Effect, 2);
+        item.position = cc.v2(0, yPosition);
+        item.turnEndRecycleFlag = true;
+    },
+    gameLose: function gameLose() {
+        this.gameOver = true;
+        this.saveScoreAndCoin();
+        cc.sys.localStorage.removeItem(BBB_Global.SaveGameKey);
+
+        this.createGameOverPanel();
+        AudioHelp.playEffect(window.AudioName.SFX_GAME_LOSE, 1);
+
+        if (window.GameData.showShare) {
+            this.banner = WXHelp.createBanner(window.BannerVedioId.gameOver_banner);
+        }
+    },
+    saveScoreAndCoin: function saveScoreAndCoin() {
+        if (this.curScore > this.historyMaxScore) {
+            cc.sys.localStorage.setItem(BBB_Global.MaxScoreKey, this.curScore);
+        }
+    },
+    saveGame: function saveGame() {
+        this.saveScoreAndCoin();
+
+        if (this.gameOver) {
+            return;
+        }
+
+        if (!this.boxList) {
+            console.log('尚未进行游戏');
+        } else {
+            //收集box
+            var boxSaveData = [];
+            for (var index = 0; index < this.boxList.length; index++) {
+                var node = this.boxList[index];
+                var box = node.getComponent("bbb_box");
+                var pos = node.position;
+                var coord = this.getCoordFromPosition(pos);
+
+                var data = {
+                    "shape": box.shape,
+                    "number": box.rigidity,
+                    "coord": coord
+                };
+                boxSaveData.push(data);
+            }
+
+            var itemSaveData = [];
+            for (var _index4 = 0; _index4 < this.itemList.length; _index4++) {
+                var _node = this.itemList[_index4];
+                var _item = _node.getComponent("bbb_item");
+                var _pos = _node.position;
+                var _coord = this.getCoordFromPosition(_pos);
+
+                var _data = {
+                    "type": _item.type,
+                    "effectType": _item.effectType,
+                    "coord": _coord
+                };
+                itemSaveData.push(_data);
+            }
+
+            var saveData = {
+                "curScore": this.curScore,
+                "box": boxSaveData,
+                "item": itemSaveData,
+                "ball": this.ballCount,
+                "ball_count": this.ball_count,
+                "damage_level": this.damage_level,
+                "jindu_fenzi": this.jindu_fenzi,
+                "jindu_fenmu": this.jindu_fenmu,
+                "points": this.points,
+                "difficulty": this.difficulty,
+                "ballsLimit": this.ballCountLimit,
+                "baolieqiuCount": this.baolieqiu_cnt,
+                "zhendangboCount": this.zhendangbo_cnt,
+                "fenxiangCount": this.fenxiangCount,
+                "first_level": this.first_level,
+                "useBaolieqiuCnt": this.useBaolieqiuCnt,
+                "canUse_baolie": this.canUse_baolie,
+                "canUse_zhendang": this.canUse_zhendang
+            };
+
+            cc.sys.localStorage.setItem(BBB_Global.SaveGameKey, JSON.stringify(saveData));
+        }
+    },
+    loadGame: function loadGame() {
+        var loadDataString = cc.sys.localStorage.getItem(BBB_Global.SaveGameKey);
+        if (loadDataString) {
+            var loadData = JSON.parse(loadDataString);
+
+            this.curScore = loadData.curScore;
+            this.ballCount = loadData.ball;
+
+            this.difficulty = loadData.difficulty;
+            this.ballCountLimit = loadData.ballsLimit;
+
+            this.ball_count = loadData.ball_count;
+            this.damage_level = loadData.damage_level;
+            this.jindu_fenzi = loadData.jindu_fenzi;
+            this.jindu_fenmu = loadData.jindu_fenmu;
+
+            this.baolieqiu_cnt = loadData.baolieqiuCount;
+            this.zhendangbo_cnt = loadData.zhendangboCount;
+
+            this.fenxiangCount = loadData.fenxiangCount;
+            this.first_level = loadData.first_level;
+            this.useBaolieqiuCnt = loadData.useBaolieqiuCnt;
+
+            if (loadData.canUse_baolie) this.canUse_baolie = loadData.canUse_baolie;else this.canUse_baolie = window.GameData.boomBallCount;
+            if (loadData.canUse_zhendang) this.canUse_zhendang = loadData.canUse_zhendang;else this.canUse_zhendang = window.GameData.ShockGetMain;
+
+            this.baolieqiuLabel.string = this.canUse_baolie.toString();
+            this.zhendangboLabel.string = this.canUse_zhendang.toString();
+            console.log(this.canUse_baolie, this.baolieqiu_cnt);
+            console.log(this.canUse_zhendang, this.zhendangbo_cnt);
+
+            this.showZidankuang();
+            if (this.ballCount < this.ballCountLimit) {
+                this.showTop(true, true, false);
+            } else {
+                this.showTop(false, true, true);
+            }
+
+            this.points = loadData.points;
+            this.pointLabel.string = this.points.toString();
+
+            var boxes = loadData.box;
+            for (var index = 0; index < boxes.length; index++) {
+                var boxData = boxes[index];
+                var coord = boxData.coord;
+                var box = this.getBox(boxData.shape, boxData.number);
+                box.line = coord.row - 1;
+                box.colorLevel = box.line;
+                box.color = this.colors[box.colorLevel];
+                box.position = this.getPositionFromCoord(coord);
+                if (box.colorLevel === 0) {
+                    box.prevColor = box.color;
+                } else {
+                    box.prevColor = this.colors[box.colorLevel - 1];
+                }
+            }
+
+            var itemes = loadData.item;
+            for (var _index5 = 0; _index5 < itemes.length; _index5++) {
+                var itemData = itemes[_index5];
+                var _coord2 = itemData.coord;
+                var _item2 = this.getItem(itemData.type, itemData.effectType);
+                _item2.line = _coord2.row - 1;
+                _item2.position = this.getPositionFromCoord(_coord2);
+            }
+
+            return true;
+        }
+
+        return false;
+    },
+    pauseGame: function pauseGame() {
+        this.isPause = true;
+    },
+    resumeGame: function resumeGame() {
+        this.isPause = false;
+    },
+
+
+    createAskQuitPanel: function createAskQuitPanel() {
+        this.pauseGame();
+        var panel = cc.instantiate(this.quitPanel);
+        panel.parent = this.node;
+        panel.active = true;
+
+        var jixu = panel.getChildByName('button-jixu');
+        jixu.on(cc.Node.EventType.TOUCH_END, function (event) {
+            this.resumeGame();
+            this.canQuitClick = true;
+            panel.destroy();
+        }, this);
+
+        var guanbi = panel.getChildByName('guanbi');
+        guanbi.on(cc.Node.EventType.TOUCH_END, function (event) {
+            this.resumeGame();
+            this.canQuitClick = true;
+            panel.destroy();
+        }, this);
+
+        var fanhui = panel.getChildByName('button-fanhuizhuye');
+        fanhui.on(cc.Node.EventType.TOUCH_END, function (event) {
+            cc.director.loadScene('bbb_start');
+            panel.destroy();
+        }, this);
+    },
+
+    // createAskQuitPanel() {
+    //     this.pauseGame();
+    //     AudioHelp.btnClickEffect();
+    //     let self = this;
+    //     Utils.showMessageBoxNoClose("你确定要离开游戏吗？",function(){
+    //         cc.director.loadScene('bbb_start');
+    //     },function(){
+    //         self.resumeGame();
+    //         self.canQuitClick = true;
+    //     },null,window.MessageBoxStr.Quit,window.MessageBoxStr.Cancel);
+    // },
+
+    createGameOverPanel: function createGameOverPanel() {
+        var commpont = PanelManager.openPanel(window.PrefabType.GameOver);
+        commpont.node.controller = this;
+    },
+
+
+    createBaoxiangPanel: function createBaoxiangPanel() {
+        var self = this;
+        var panel = cc.instantiate(this.baoxiangPrefab);
+        panel.parent = this.node;
+        panel.name = 'bao_xiang';
+        panel.active = true;
+        var xiaohang = panel.getChildByName('xiaohang');
+        xiaohang.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (cc.sys.platform == cc.sys.WECHAT_GAME) {
+                if (window.GameData.showShare == false) {
+                    self.xiaoSanHang();
+                    self.baoxiang.active = false;
+                    panel.destroy();
+                    self.showBaoxiang = false;
+                    self.turnEnd();
+                } else {
+                    self.shareFunc(function () {
+                        window.GameData.setStatisticData(BBB_Global.useXiaosanhangCnt);
+                        console.log("\u5206\u4EAB\u6210\u529F\u6D88\u4E09\u884C\uFF1A" + self.showBaoxiang);
+                        self.xiaoSanHang();
+                        self.baoxiang.active = false;
+                        panel.destroy();
+                        self.showBaoxiang = false;
+                        self.turnEnd();
+                    });
+                }
+            } else {
+                self.xiaoSanHang();
+                self.baoxiang.active = false;
+                panel.destroy();
+                self.showBaoxiang = false;
+                self.turnEnd();
+            }
+        }, this);
+        var bangchui = panel.getChildByName('bangchui');
+        bangchui.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (cc.sys.platform == cc.sys.WECHAT_GAME) {
+                if (window.GameData.showShare == false) {
+                    self.bangChui();
+                    self.baoxiang.active = false;
+                    panel.destroy();
+                    self.showBaoxiang = false;
+                    self.turnEnd();
+                } else {
+                    self.shareFunc(function () {
+                        window.GameData.setStatisticData(BBB_Global.useBangchuiCnt);
+                        console.log("\u5206\u4EAB\u6210\u529F\u7528\u68D2\u69CC\uFF1A" + self.showBaoxiang);
+                        self.bangChui();
+                        self.baoxiang.active = false;
+                        panel.destroy();
+                        self.showBaoxiang = false;
+                        self.turnEnd();
+                    });
+                }
+            } else {
+                self.bangChui();
+                self.baoxiang.active = false;
+                panel.destroy();
+                self.showBaoxiang = false;
+                self.turnEnd();
+            }
+        }, this);
+        var guanbi = panel.getChildByName('guanbi');
+        guanbi.on(cc.Node.EventType.TOUCH_END, function (event) {
+            self.baoxiang.active = false;
+            panel.destroy();
+            self.showBaoxiang = false;
+            self.turnEnd();
+        }, this);
+    },
+
+    shareFunc: function shareFunc(func) {
+        var self = this;
+        WXHelp.shareAppMessageDiffGroup(function () {
+            window.curShareType = "InGame";
+            self.timer = setInterval(function () {
+                console.log("-window.SystemInfo.isSuccess-->", window.SystemInfo.isSuccess);
+                if (window.SystemInfo.isSuccess != -1) {
+                    clearInterval(self.timer);
+                }
+                if (window.SystemInfo.isSuccess == 1) {
+                    window.SystemInfo.isSuccess = -1;
+                    window.GameData.setShareCount(1);
+                    func();
+                } else if (window.SystemInfo.isSuccess == 0) {
+                    window.SystemInfo.isSuccess = -1;
+                    self.hasClick = false;
+                    WXHelp.showWXTips("提示", "分享失败，请分享到其他群！");
+                    self.usingDaoju = false;
+                }
+            }, 800);
+        });
+    },
+
+    showGetSkinTip: function showGetSkinTip() {
+        var data = JsonConfig.loadItems.DataConfig.RoleSkin;
+        for (var i = 1; i < data.length; i++) {
+            if (window.GameData.skinArr[i] == false) continue;
+            var params = 0;
+            if (data[i].invite != 0) {
+                params = window.GameData.share / data[i].invite;
+            } else if (data[i].share != 0) {
+                params = window.GameData.shareCount / data[i].share;
+            } else if (data[i].score != 0) {
+                params = window.GameData.curMaxScore / data[i].score;
+                if (params < 1) params = this.points / data[i].score;
+            } else if (data[i].floor != 0) {
+                params = window.GameData.curMaxFloor / data[i].floor;
+                if (params < 1) params = this.curScore / data[i].floor;
+            } else {
+                params = 1;
+            }
+            if (params >= 1) {
+                window.GameData.setSkinArr(i);
+                return { name: data[i].name, index: i };
+            }
+        }
+        return null;
+    }
+});
+
+cc._RF.pop();
+        }
+        if (CC_EDITOR) {
+            __define(__module.exports, __require, __module);
+        }
+        else {
+            cc.registerModuleFunc(__filename, function () {
+                __define(__module.exports, __require, __module);
+            });
+        }
+        })();
+        //# sourceMappingURL=bbb_physicsLayer.js.map
+        

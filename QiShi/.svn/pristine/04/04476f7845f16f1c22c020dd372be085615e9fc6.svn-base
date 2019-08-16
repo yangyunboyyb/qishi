@@ -1,0 +1,9 @@
+{
+"prefabMap":
+	[
+	{"id":101, "path":"Prefab/MessageBox","component":"MessageBox"},
+	{"id":102, "path":"Prefab/Rank","component":"RankPanel"},
+	{"id":103, "path":"Prefab/Setting","component":"SettingPanel"},
+	{"id":104, "path":"Prefab/Skin","component":"SkinPanel"}
+	]
+}

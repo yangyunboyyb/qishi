@@ -1,0 +1,52 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        isLocked: cc.Node,
+        enterBtn: cc.Node,
+        num1: cc.Node,
+        num2: cc.Node,
+        num3: cc.Node,
+        typeSpriteFrame: [cc.SpriteFrame],
+    },
+
+    init: function (level) {
+        this.level = level;
+        let number3 = level % 10;
+        level = parseInt(level / 10);
+        let number2 = level % 10;
+        level = parseInt(level / 10);
+        let number1 = level % 10;
+        this.num1.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[number1];
+        this.num2.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[number2];
+        this.num3.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[number3];
+
+        if (this.level > window.GameData.curMaxLevel) {
+            this.isLocked.active = true;
+        }
+        else {
+            this.isLocked.active = false;
+            if (this.level == window.GameData.curMaxLevel) {
+                this.enterBtn.active = true;
+            }
+            else {
+                this.enterBtn.active = false;
+            }
+        }
+    },
+
+    onLoad: function () {
+        let self = this;
+        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.isLocked.active)
+                return;
+            window.GameData.setCurLevel(self.level);
+            cc.director.loadScene("game");
+        }, this);
+    },
+
+    start() {
+
+    },
+});

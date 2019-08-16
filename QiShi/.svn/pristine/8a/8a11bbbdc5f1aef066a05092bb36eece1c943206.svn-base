@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "9acab22e-e83a-40c0-8a6a-33b0f6486317",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "tang_seng_qi_ma": {
+      "ver": "1.0.3",
+      "uuid": "76da06ba-70e8-4a59-b0ab-9880956dc703",
+      "rawTextureUuid": "9acab22e-e83a-40c0-8a6a-33b0f6486317",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": -10,
+      "offsetY": 4.5,
+      "trimX": 36,
+      "trimY": 5,
+      "width": 708,
+      "height": 781,
+      "rawWidth": 800,
+      "rawHeight": 800,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

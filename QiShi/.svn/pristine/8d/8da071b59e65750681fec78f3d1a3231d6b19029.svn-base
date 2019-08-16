@@ -1,0 +1,384 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        linePrefab: cc.Prefab,
+        horsePrefab: cc.Prefab,
+        stepPrefab: cc.Prefab,
+        stonePrefab: cc.Prefab,
+
+        overLabel: cc.Label,
+        levelLabel: cc.Label,
+
+        backBtn: cc.Node,
+        tipBtn: cc.Node,
+        resetBtn: cc.Node,
+        awardBtn: cc.Node,
+        ignoreBtn: cc.Node,
+        goldCoin: cc.Node,
+    },
+
+    onLoad: function () {
+        this.initHorse();
+        this.initStep();
+        this.initLine();
+        this.initStone();
+        this.initGoldCoin();
+
+        this.reset();
+        this.gameBtnListen();
+    },
+
+    gameBtnListen: function () {
+        let self = this;
+        this.backBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.level <= 0) //level是从0开始的，对应第1关
+                return;
+            self.level--;
+            self.clearAll();
+            self.reset();
+        }, this);
+
+        this.tipBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            let cost = Global.levelData[self.level].tipCost
+            if (self.coinCount < cost)
+                return;
+            self.costCoin(cost);
+            self.clearAll();
+            self.reset();
+            self.showCorrectPath();
+        }, this);
+
+        this.resetBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.awardBtn.active && self.ignoreBtn.active)
+                return;
+            self.clearAll();
+            self.reset();
+        }, this);
+
+        this.awardBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            let award = Global.levelData[self.level].award;
+            self.coinCount += award;
+            let coinLabel = self.goldCoin.getChildByName("New Label");
+            coinLabel.getComponent(cc.Label).string = self.coinCount.toString();
+            coinLabel.runAction(cc.sequence(cc.scaleTo(0.7, 1.35, 1.35), cc.scaleTo(0.7, 1, 1)));
+            self.reset();
+        }, this);
+
+        this.ignoreBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            self.reset();
+        }, this);
+    },
+
+    costCoin: function (cost) {
+        this.coinCount -= cost;
+        let coinLabel = this.goldCoin.getChildByName("New Label");
+        coinLabel.getComponent(cc.Label).string = this.coinCount.toString();
+        coinLabel.runAction(cc.sequence(cc.scaleTo(0.7, 1.35, 1.35), cc.scaleTo(0.7, 1, 1)));
+    },
+
+    showCorrectPath: function () {
+        for (var i = 0; i < Global.levelData[this.level].answer.length; i++) {
+            let answer = Global.levelData[this.level].answer[i];
+            let x = parseInt(answer / this.chessWidth);
+            let y = answer % this.chessWidth;
+            this.showStep(x, y, i + 1);
+        }
+    },
+
+    initHorse: function () {
+        this.horsePool = new cc.NodePool();
+        let initCount = 10;
+        for (let i = 0; i < initCount; i++) {
+            let horse = cc.instantiate(this.horsePrefab); // 创建节点
+            this.horsePool.put(horse); // 通过 put 接口放入对象池
+        }
+        this.horseList = [];
+    },
+
+    initStep: function () {
+        this.stepPool = new cc.NodePool();
+        let initCount = 64;
+        for (let i = 0; i < initCount; i++) {
+            let step = cc.instantiate(this.stepPrefab); // 创建节点
+            this.stepPool.put(step); // 通过 put 接口放入对象池
+        }
+        this.stepList = [];
+    },
+
+    initLine: function () {
+        this.linePool = new cc.NodePool();
+        let initCount = 20;
+        for (let i = 0; i < initCount; i++) {
+            let line = cc.instantiate(this.linePrefab); // 创建节点
+            this.linePool.put(line); // 通过 put 接口放入对象池
+        }
+        this.lineList = [];
+    },
+
+    initStone: function () {
+        this.stonePool = new cc.NodePool();
+        let initCount = 20;
+        for (let i = 0; i < initCount; i++) {
+            let stone = cc.instantiate(this.stonePrefab); // 创建节点
+            this.stonePool.put(stone); // 通过 put 接口放入对象池
+        }
+        this.stoneList = [];
+    },
+
+    initGoldCoin: function () {
+        if (this.coinCount == null) {
+            this.coinCount = Global.goldCoin;
+        }
+        this.goldCoin.getChildByName("New Label").getComponent(cc.Label).string = this.coinCount.toString();
+    },
+
+    reset: function () {
+        this.initDifficulty();
+        this.initChess();
+        this.power = 1;
+        this.drawLines();
+
+        this.preRow = Global.startX;
+        this.preCol = Global.startY;
+        this.setHorse(this.preRow, this.preCol);
+
+        this.overLabel.node.active = false;
+        this.awardBtn.active = false;
+        this.ignoreBtn.active = false;
+    },
+
+    initDifficulty: function () {
+        if (this.level == null)
+            this.level = 0;
+        this.levelLabel.string = "第 " + (this.level + 1).toString() + " 关";
+        this.chessWidth = Global.levelData[this.level].width;
+        this.chessHeight = Global.levelData[this.level].height;
+    },
+
+    initChess: function () {
+        this.chess = [];
+        for (var i = 0; i < this.chessWidth; i++) {
+            this.chess[i] = [];
+            for (var j = 0; j < this.chessHeight; j++) {
+                this.chess[i][j] = 0;
+            }
+        }
+        for (var d of Global.levelData[this.level].difficulty) {
+            let x = parseInt(d / this.chessWidth);
+            let y = d % this.chessWidth;
+            this.chess[x][y] = 9999;
+            this.getStone(x, y);
+        }
+    },
+
+    start() {
+
+    },
+
+    drawLines: function () {
+        for (var i = 0; i < 2; i++) {
+            for (var j = 0; j < this.chessWidth + 1; j++) {
+                this.drawLine(i, j);
+            }
+        }
+    },
+
+    drawLine: function (i, j) {
+        let line = null;
+        if (this.linePool.size() > 0) {
+            line = this.linePool.get();
+        } else {
+            line = cc.instantiate(this.linePrefab);
+        }
+        line.parent = this.node;
+        line.getComponent('line').init(this, i, j);
+        this.lineList.push(line);
+    },
+
+    setHorse: function (i, j) {
+        var horse = this.getHorse();
+        this.chess[i][j] = this.power;
+        horse.getComponent('horse').init(this, i, j, 255);
+        this.findPath(i, j);
+    },
+
+    getHorse: function (i) {
+        let horse = null;
+        if (this.horsePool.size() > 0) {
+            horse = this.horsePool.get();
+        } else {
+            horse = cc.instantiate(this.horsePrefab);
+        }
+        horse.parent = this.node;
+        horse.name = "ma";
+        this.horseList.push(horse);
+        return horse;
+    },
+
+    getStone: function (i, j) {
+        let stone = null;
+        if (this.stonePool.size() > 0) {
+            stone = this.stonePool.get();
+        } else {
+            stone = cc.instantiate(this.stonePrefab);
+        }
+        stone.parent = this.node;
+        stone.getComponent("horse").init(this, i, j, 255);
+        this.stoneList.push(stone);
+    },
+
+    findPath: function (i, j) {
+        var gameOver = true;
+        let self = this;
+        if (i + 2 <= this.chessWidth - 1 && j + 1 <= this.chessHeight - 1 && this.chess[i + 2][j + 1] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i + 2, j + 1, 100);
+        }
+
+        if (i + 2 <= this.chessWidth - 1 && j - 1 >= 0 && this.chess[i + 2][j - 1] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i + 2, j - 1, 100);
+        }
+
+        if (i + 1 <= this.chessWidth - 1 && j + 2 <= this.chessHeight - 1 && this.chess[i + 1][j + 2] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i + 1, j + 2, 100);
+        }
+
+        if (i + 1 <= this.chessWidth - 1 && j - 2 >= 0 && this.chess[i + 1][j - 2] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i + 1, j - 2, 100);
+        }
+
+        if (i - 2 >= 0 && j + 1 <= this.chessHeight - 1 && this.chess[i - 2][j + 1] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i - 2, j + 1, 100);
+        }
+
+        if (i - 2 >= 0 && j - 1 >= 0 && this.chess[i - 2][j - 1] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i - 2, j - 1, 100);
+        }
+
+        if (i - 1 >= 0 && j + 2 <= this.chessHeight - 1 && this.chess[i - 1][j + 2] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i - 1, j + 2, 100);
+        }
+
+        if (i - 1 >= 0 && j - 2 >= 0 && this.chess[i - 1][j - 2] == 0) {
+            gameOver = false;
+            var horse = this.getHorse();
+            horse.getComponent('horse').init(this, i - 1, j - 2, 100);
+        }
+
+        if (this.power >= this.chessWidth * this.chessHeight - Global.levelData[this.level].difficulty.length) {
+            this.level++;
+            this.gameOver(true);
+        }
+        else {
+            if (gameOver) {
+                this.gameOver(false);
+            }
+        }
+    },
+
+    gameOver: function (isWin) {
+        let self = this;
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                self.node.getChildByName("ma").setAnchorPoint(Global.anchorX[i], Global.anchorY[i]);
+            }, 50 * (i + 1));
+        }
+
+        setTimeout(() => {
+            self.clearAll();
+            self.overLabel.node.active = true;
+            if (isWin) {
+                self.overLabel.string = "进入下一关";
+                self.awardBtn.active = true;
+                let award = Global.levelData[self.level].award;
+                self.awardBtn.getChildByName("Label").getComponent(cc.Label).string = "领取" + award.toString() + "金币";
+                self.ignoreBtn.active = true;
+            }
+            else {
+                self.overLabel.string = "无路可走了" + "\n\n" + "可以点击重置按钮" + "\n\n" + "或者回上一关继续游戏";
+            }
+        }, 500);
+    },
+
+    clearAll: function () {
+        this.clearHorse();
+        this.clearStep();
+        this.clearLine();
+        this.clearStone();
+    },
+
+    resetHorse: function (i, j) {
+        this.clearHorse();
+        this.setHorse(i, j);
+        this.showStep(this.preRow, this.preCol);
+        this.preRow = i;
+        this.preCol = j;
+    },
+
+    clearHorse: function () {
+        for (var h of this.horseList) {
+            this.horsePool.put(h);
+        }
+        this.horseList = [];
+    },
+
+    clearStep: function () {
+        for (var s of this.stepList) {
+            this.stepPool.put(s);
+        }
+        this.stepList = [];
+    },
+
+    clearLine: function () {
+        for (var l of this.lineList) {
+            this.linePool.put(l);
+        }
+        this.lineList = [];
+    },
+
+    clearStone: function () {
+        for (var s of this.stoneList) {
+            this.stonePool.put(s);
+        }
+        this.stoneList = [];
+    },
+
+    showStep: function (i, j, num) {
+        let step = null;
+        if (this.stepPool.size() > 0) {
+            step = this.stepPool.get();
+        } else {
+            step = cc.instantiate(this.stepPrefab);
+        }
+        step.parent = this.node;
+        step.setScale(Global.stepScale * 8 / this.chessWidth);
+        this.stepList.push(step);
+        let width = this.node.width - Global.gap;
+        let height = this.node.height - Global.gap;
+        step.opacity = 255;
+        if (num != undefined) {
+            step.opacity = 100;
+            step.getComponent(cc.Label).string = num.toString();
+        }
+        else {
+            step.getComponent(cc.Label).string = (this.power - 1).toString();
+        }
+        step.y = -width / 2 + width / this.chessWidth * i + width / (2 * this.chessWidth);
+        step.x = -height / 2 + height / this.chessHeight * j + height / (2 * this.chessHeight);
+    },
+});

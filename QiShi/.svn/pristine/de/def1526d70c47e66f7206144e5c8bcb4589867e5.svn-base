@@ -1,0 +1,44 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        stageLabel: cc.Label,
+        isLocked: cc.Node,
+    },
+
+    init: function (index) {
+        this.index = index;
+        this.stageLabel.string = "第" + (this.index + 1).toString() + "阶段\n" + Global.gameStage[this.index].dist;
+        let maxLevel = window.GameData.curMaxLevel;
+        let count = parseInt(maxLevel / Global.levelSum);
+        if (this.index < count) {
+            this.isLocked.active = false;
+        }
+        else if (this.index == count) {
+            if (maxLevel % Global.levelSum == 0) {
+                this.isLocked.active = true;
+            }
+            else {
+                this.isLocked.active = false;
+            }
+        }
+        else {
+            this.isLocked.active = true;
+        }
+    },
+
+    start() {
+
+    },
+
+    onLoad: function () {
+        let self = this;
+        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.isLocked.active)
+                return;
+            window.GameData.setSelStage(self.index);
+            cc.director.loadScene("level_small");
+        }, this);
+    },
+});

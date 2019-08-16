@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "92126377-44ee-4c64-8365-fc4dd45f280f",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "mataLogo": {
+      "ver": "1.0.3",
+      "uuid": "2fce0217-bc94-45b2-9188-56fc3902847a",
+      "rawTextureUuid": "92126377-44ee-4c64-8365-fc4dd45f280f",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": 0.5,
+      "offsetY": 0.5,
+      "trimX": 2,
+      "trimY": 0,
+      "width": 613,
+      "height": 405,
+      "rawWidth": 616,
+      "rawHeight": 406,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}

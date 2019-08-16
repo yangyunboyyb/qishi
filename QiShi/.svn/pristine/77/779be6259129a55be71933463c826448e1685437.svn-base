@@ -1,0 +1,26 @@
+
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        scrollViewContent: cc.Node,
+        returnBtn: cc.Node,
+        stageItem: cc.Prefab,
+    },
+
+    start() {
+        this.scrollViewContent.removeAllChildren();
+        for (var i = 0; i < Global.gameStage.length; i++) {
+            let item = cc.instantiate(this.stageItem);
+            item.getComponent("stageItem").init(i);
+            this.scrollViewContent.addChild(item);
+        }
+    },
+
+    onLoad: function () {
+        this.returnBtn.on(cc.Node.EventType.TOUCH_END, function (event) {
+            cc.director.loadScene("start");
+        }, this);
+    },
+});

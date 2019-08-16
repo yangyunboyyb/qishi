@@ -1,0 +1,48 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        isLocked: cc.Node,
+        imgNode: cc.Node,
+        typeSpriteFrame: [cc.SpriteFrame],
+    },
+
+    init: function (index) {
+        this.index = index;
+        let start = 1 + this.index * Global.levelSum;
+        let end = (this.index + 1) * Global.levelSum;
+        this.imgNode.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[this.index];
+
+        let maxLevel = window.GameData.curMaxLevel;
+        let count = parseInt(maxLevel / Global.levelSum);
+        if (this.index < count) {
+            this.isLocked.active = false;
+        }
+        else if (this.index == count) {
+            if (maxLevel % Global.levelSum == 0) {
+                this.isLocked.active = true;
+            }
+            else {
+                this.isLocked.active = false;
+            }
+        }
+        else {
+            this.isLocked.active = true;
+        }
+    },
+
+    start() {
+
+    },
+
+    onLoad: function () {
+        let self = this;
+        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.isLocked.active)
+                return;
+            window.GameData.setSelStage(self.index);
+            cc.director.loadScene("level_small");
+        }, this);
+    },
+});

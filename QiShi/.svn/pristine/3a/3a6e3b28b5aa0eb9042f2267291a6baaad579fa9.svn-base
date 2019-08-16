@@ -1,0 +1,232 @@
+"use strict";
+cc._RF.push(module, '10903vGc+RFi5BMgHjBCdJG', 'RankList');
+// Script/RankList.js
+
+"use strict";
+
+var Utils = require("Utils");
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        rankItemNode: cc.Node,
+        scrollView: cc.ScrollView,
+        labelLoading: cc.Label,
+        rankItemPre: cc.Prefab,
+        indexImg: [cc.SpriteFrame],
+
+        gameOver: cc.Node,
+        friendNode: cc.Node
+    },
+
+    start: function start() {
+        var _this = this;
+
+        wx.onMessage(function (data) {
+            if (data.messageType == 2) {
+                _this.gameOver.active = false;
+                _this.friendNode.active = true;
+                _this.fetchFriendData(data.MAIN_MENU_NUM);
+            } else if (data.messageType == 1) {
+                _this.gameOver.active = true;
+                _this.friendNode.active = false;
+                _this.gameOverData(data);
+            }
+        });
+    },
+
+
+    removeChild: function removeChild() {
+        this.scrollView.content.removeAllChildren();
+        this.rankItemNode.active = false;
+        this.labelLoading.node.active = true;
+        this.labelLoading.string = "加载中...";
+    },
+
+    fetchFriendData: function fetchFriendData(MAIN_MENU_NUM) {
+        var _this2 = this;
+
+        this.removeChild();
+        wx.getUserInfo({
+            openIdList: ['selfOpenId'],
+            lang: 'zh_CN',
+            success: function success(userRes) {
+                _this2.labelLoading.node.active = false;
+                var userdata = userRes.data[0];
+                wx.getFriendCloudStorage({
+                    keyList: [MAIN_MENU_NUM],
+                    success: function success(res) {
+                        _this2.labelLoading.node.active = false;
+                        console.log("-------success getFriendCloudStorage----->", res);
+                        var data = res.data;
+                        data.sort(function (a, b) {
+                            if (!a) {
+                                return 1;
+                            }
+                            if (!b) {
+                                return -1;
+                            }
+                            if (!a.KVDataList) {
+                                return 1;
+                            }
+                            if (!b.KVDataList) {
+                                return -1;
+                            }
+                            if (a.KVDataList.length == 0) {
+                                return 1;
+                            }
+                            if (b.KVDataList.length == 0) {
+                                return -1;
+                            }
+                            if (a.KVDataList.length == 0 || b.KVDataList.length == 0) {
+                                return 0;
+                            }
+
+                            return b.KVDataList[0].value - a.KVDataList[0].value;
+                        });
+                        var index_ = 0;
+                        for (var i in data) {
+                            var playerInfo = data[i];
+                            if (!playerInfo) {
+                                continue;
+                            }
+                            if (playerInfo.KVDataList.length == 0) {
+                                continue;
+                            }
+                            if (userdata.avatarUrl == playerInfo.avatarUrl) {
+                                _this2.showMeRank(playerInfo, index_);
+                            }
+                            var item = cc.instantiate(_this2.rankItemPre);
+                            item.getComponent('RankItem').init(index_, playerInfo, _this2.indexImg);
+                            _this2.scrollView.content.addChild(item);
+
+                            index_++;
+                        }
+                    },
+                    fail: function fail(res) {
+                        _this2.labelLoading.active = true;
+                        _this2.labelLoading.string = "加载失败...";
+                    }
+                });
+            },
+            fail: function fail(res) {
+                _this2.labelLoading.active = true;
+                _this2.labelLoading.string = "加载失败...";
+            }
+        });
+    },
+
+    showMeRank: function showMeRank(data, index) {
+        this.rankItemNode.active = true;
+        var labelName = this.rankItemNode.getChildByName("nickname").getComponent(cc.Label);
+        var labelRank = this.rankItemNode.getChildByName("ranklabel").getComponent(cc.Label);
+        var imgrank = this.rankItemNode.getChildByName("imgrank").getComponent(cc.Sprite);
+        var labelmoney = this.rankItemNode.getChildByName("labelscore").getComponent(cc.Label);
+
+        labelName.string = data.nickname;
+        var imgheadurl = data.avatarUrl;
+        Utils.createImage(imgheadurl, this.rankItemNode.getChildByName("headspr").getComponent(cc.Sprite));
+
+        var grade = "0";
+        if (data.KVDataList && JSON.stringify(data.KVDataList) != '{}') {
+            grade = data.KVDataList[0].value;
+        }
+        labelmoney.string = grade + "分";
+
+        if (index < 3) {
+            labelRank.node.active = false;
+            imgrank.node.active = true;
+            imgrank.spriteFrame = this.indexImg[index];
+        } else {
+            imgrank.node.active = false;
+            labelRank.node.active = true;
+            labelRank.string = index + 1;
+        }
+    },
+
+    //游戏结束
+    gameOverData: function gameOverData(msg) {
+        var _this3 = this;
+
+        //curScore
+        wx.getUserInfo({
+            openIdList: ['selfOpenId'],
+            lang: 'zh_CN',
+            success: function success(userRes) {
+                _this3.gameOver.active = true;
+                var userdata = userRes.data[0];
+                wx.getFriendCloudStorage({
+                    keyList: [msg.MAIN_MENU_NUM],
+                    success: function success(res) {
+                        _this3.gameOver.active = true;
+                        console.log("-------success getFriendCloudStorage----->", res);
+                        var data = res.data;
+                        for (var i in data) {
+                            if (userdata.avatarUrl == data[i].avatarUrl) {
+                                data[i].KVDataList[0].value = msg.curScore;
+                            }
+                        }
+                        data.sort(function (a, b) {
+                            if (!a) {
+                                return 1;
+                            }
+                            if (!b) {
+                                return -1;
+                            }
+                            if (!a.KVDataList) {
+                                return 1;
+                            }
+                            if (!b.KVDataList) {
+                                return -1;
+                            }
+                            if (a.KVDataList.length == 0) {
+                                return 1;
+                            }
+                            if (b.KVDataList.length == 0) {
+                                return -1;
+                            }
+                            if (a.KVDataList.length == 0 || b.KVDataList.length == 0) {
+                                return 0;
+                            }
+                            return b.KVDataList[0].value - a.KVDataList[0].value;
+                        });
+                        var index_ = 0;
+                        for (var _i in data) {
+                            if (userdata.avatarUrl == data[_i].avatarUrl) {
+                                break;
+                            }
+                            index_++;
+                        }
+
+                        _this3.showOtherScore(_this3.gameOver.getChildByName("smallnode"), data[index_ + 1]);
+                        _this3.showOtherScore(_this3.gameOver.getChildByName("bignode"), data[index_ - 1]);
+                    },
+                    fail: function fail(res) {
+                        _this3.gameOver.active = false;
+                    }
+                });
+            },
+            fail: function fail(res) {
+                _this3.gameOver.active = false;
+            }
+        });
+    },
+
+    showOtherScore: function showOtherScore(node, data) {
+        if (data) {
+            var imgheadurl = data.avatarUrl;
+            var head = node.getChildByName("userhead").getChildByName("mask").getChildByName("headspr").getComponent(cc.Sprite);
+            Utils.createImage(imgheadurl, head);
+            var label = node.getChildByName("labelscore").getComponent(cc.Label);
+            var grade = "0";
+            if (data.KVDataList && JSON.stringify(data.KVDataList) != '{}') {
+                grade = data.KVDataList[0].value;
+            }
+            label.string = grade;
+        } else {
+            node.active = false;
+        }
+    }
+});
+
+cc._RF.pop();

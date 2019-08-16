@@ -1,0 +1,44 @@
+
+cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        typeSpriteFrame: [cc.SpriteFrame],
+        touchArea: cc.Node,
+    },
+
+    init: function (controller, i, j, opacity, rand) {
+        this.row = i;
+        this.col = j;
+        this.controller = controller;
+        this.node.opacity = opacity;
+        let width = this.controller.node.width - window.Global.gap;
+        let height = this.controller.node.height - window.Global.gap;
+        this.node.y = -width / 2 + width / this.controller.chessWidth * this.row + width / (2 * this.controller.chessWidth);
+        this.node.x = -height / 2 + height / this.controller.chessHeight * this.col + height / (2 * this.controller.chessHeight);
+        this.node.setScale(8 / this.controller.chessWidth);
+
+        if (rand != undefined)
+            this.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[rand];
+        else
+            this.getComponent(cc.Sprite).spriteFrame = this.typeSpriteFrame[0];
+    },
+
+    onLoad: function () {
+        this.touchListen();
+    },
+
+    touchListen: function () {
+        let self = this;
+        this.touchArea.on(cc.Node.EventType.TOUCH_END, function (event) {
+            if (self.node.opacity == 255)
+                return;
+            self.controller.power++;
+            self.controller.resetHorse(self.row, self.col);
+        }, this);
+    },
+
+    start() {
+
+    },
+});

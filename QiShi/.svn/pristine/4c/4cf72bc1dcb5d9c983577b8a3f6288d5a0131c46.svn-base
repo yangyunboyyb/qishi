@@ -1,0 +1,172 @@
+2019-03-26T09:38:12.104Z - normal: Load ~/.CocosCreator/settings.json
+2019-03-26T09:38:12.104Z - normal: checking language setting...
+2019-03-26T09:38:12.104Z - normal: Language: zh
+2019-03-26T09:38:13.768Z - success: protocol editor-framework registered
+2019-03-26T09:38:13.768Z - success: protocol app registered
+2019-03-26T09:38:13.768Z - success: protocol theme registered
+2019-03-26T09:38:13.768Z - success: protocol packages registered
+2019-03-26T09:38:13.768Z - success: protocol unpack registerred
+2019-03-26T09:38:13.768Z - success: protocol disable-commonjs registerred
+2019-03-26T09:38:13.892Z - normal: connected!
+2019-03-26T09:38:13.892Z - normal: Check project C:\QiShi\gamerank
+2019-03-26T09:38:13.908Z - normal: Initializing project C:\QiShi\gamerank
+2019-03-26T09:38:13.908Z - normal: Initializing Cocos2d
+2019-03-26T09:38:14.613Z - normal: Initializing Asset Database
+2019-03-26T09:38:14.660Z - success: protocol uuid registerred
+2019-03-26T09:38:14.660Z - success: protocol db registerred
+2019-03-26T09:38:14.660Z - success: protocol thumbnail registerred
+2019-03-26T09:38:14.660Z - normal: Loading editor/builtin packages
+2019-03-26T09:38:14.800Z - success: assets loaded
+2019-03-26T09:38:14.800Z - success: builder loaded
+2019-03-26T09:38:14.800Z - success: cocos-analytics loaded
+2019-03-26T09:38:14.816Z - success: console loaded
+2019-03-26T09:38:14.847Z - success: fb-instant-games loaded
+2019-03-26T09:38:14.847Z - success: google-instant-games loaded
+2019-03-26T09:38:14.847Z - success: hierarchy loaded
+2019-03-26T09:38:14.847Z - success: inspector loaded
+2019-03-26T09:38:14.847Z - success: keystore loaded
+2019-03-26T09:38:14.863Z - success: node-library loaded
+2019-03-26T09:38:14.863Z - success: package-asset loaded
+2019-03-26T09:38:14.863Z - success: preferences loaded
+2019-03-26T09:38:14.863Z - success: project-exporter loaded
+2019-03-26T09:38:14.878Z - success: project-importer loaded
+2019-03-26T09:38:14.878Z - success: project-settings loaded
+2019-03-26T09:38:14.878Z - success: ui-kit loaded
+2019-03-26T09:38:14.878Z - success: scene loaded
+2019-03-26T09:38:14.878Z - success: sprite-editor loaded
+2019-03-26T09:38:14.878Z - success: store loaded
+2019-03-26T09:38:14.894Z - success: timeline loaded
+2019-03-26T09:38:14.894Z - normal: Loading builtin packages
+2019-03-26T09:38:14.894Z - success: asset-db-debugger loaded
+2019-03-26T09:38:14.894Z - success: code-editor loaded
+2019-03-26T09:38:14.894Z - success: color-picker loaded
+2019-03-26T09:38:14.972Z - success: google-play-instant loaded
+2019-03-26T09:38:14.972Z - success: jsb-adapter loaded
+2019-03-26T09:38:14.972Z - success: oppo-runtime loaded
+2019-03-26T09:38:14.987Z - success: package-manager loaded
+2019-03-26T09:38:15.081Z - success: qqplay-adapter loaded
+2019-03-26T09:38:15.081Z - success: sdkbox loaded
+2019-03-26T09:38:15.081Z - success: tester loaded
+2019-03-26T09:38:15.097Z - success: ui-grid loaded
+2019-03-26T09:38:15.097Z - success: ui-kit-preview-extra loaded
+2019-03-26T09:38:15.097Z - success: ui-kit-preview loaded
+2019-03-26T09:38:15.097Z - success: ui-tree loaded
+2019-03-26T09:38:15.097Z - success: vivo-runtime loaded
+2019-03-26T09:38:15.097Z - success: weapp-adapter loaded
+2019-03-26T09:38:16.131Z - normal: Loading packages
+2019-03-26T09:38:16.131Z - normal: Watching packages
+2019-03-26T09:38:16.773Z - normal: Run Application
+2019-03-26T09:38:18.111Z - success: preview server running at http://localhost:7457
+2019-03-26T09:38:55.670Z - normal: Start building with options : {
+  "actualPlatform": "wechatgame-subcontext",
+  "android-instant": {
+    "REMOTE_SERVER_ROOT": "",
+    "host": "",
+    "pathPattern": "",
+    "recordPath": "",
+    "scheme": "https",
+    "skipRecord": false
+  },
+  "apiLevel": "",
+  "appABIs": [],
+  "appKey": "",
+  "appSecret": "",
+  "buildPath": "C:\\QiShi\\build-templates\\wechatgame",
+  "debug": false,
+  "dest": "C:\\QiShi\\build-templates\\wechatgame\\wechatgame-subcontext",
+  "embedWebDebugger": false,
+  "encryptJs": true,
+  "excludeScenes": [],
+  "excludedModules": [
+    "LabelOutline",
+    "ParticleSystem",
+    "TiledMap",
+    "Spine Skeleton",
+    "DragonBones",
+    "RichText",
+    "MotionStreak",
+    "Widget",
+    "Button",
+    "ProgressBar",
+    "ScrollBar",
+    "Toggle",
+    "PageView",
+    "PageViewIndicator",
+    "Slider",
+    "EditBox",
+    "VideoPlayer",
+    "WebView",
+    "Audio",
+    "AudioSource",
+    "Animation",
+    "Collider",
+    "Action",
+    "Physics",
+    "NodePool",
+    "StudioComponent",
+    "Intersection",
+    "Native NetWork"
+  ],
+  "fb-instant-games": {},
+  "includeAnySDK": false,
+  "includeSDKBox": false,
+  "inlineSpriteFrames": true,
+  "inlineSpriteFrames_native": true,
+  "jailbreakPlatform": false,
+  "md5Cache": false,
+  "mergeStartScene": false,
+  "oauthLoginServer": "",
+  "optimizeHotUpdate": false,
+  "orientation": {
+    "landscapeLeft": true,
+    "landscapeRight": true,
+    "portrait": false,
+    "upsideDown": false
+  },
+  "packageName": "org.cocos2d.gamerank",
+  "platform": "wechatgame-subcontext",
+  "previewHeight": "720",
+  "previewWidth": "1280",
+  "privateKey": "",
+  "qqplay": {
+    "REMOTE_SERVER_ROOT": "",
+    "orientation": "portrait"
+  },
+  "scenes": [
+    "702d3a7f-b956-4f06-a2c7-0ea462ca1115"
+  ],
+  "sourceMaps": false,
+  "startScene": "702d3a7f-b956-4f06-a2c7-0ea462ca1115",
+  "template": "link",
+  "title": "wechatgame-subcontext",
+  "useDebugKeystore": true,
+  "vsVersion": "auto",
+  "webOrientation": "auto",
+  "wechatgame": {
+    "REMOTE_SERVER_ROOT": "",
+    "appid": "wx6ac3f5090a6b99c5",
+    "isSubdomain": false,
+    "orientation": "portrait",
+    "subContext": ""
+  },
+  "xxteaKey": "a01e44ae-0b75-48",
+  "zipCompressJs": true,
+  "project": "C:\\QiShi\\gamerank",
+  "projectName": "wechatgame-subcontext",
+  "debugBuildWorker": false
+}
+2019-03-26T09:38:55.674Z - normal: Building C:\QiShi\gamerank
+2019-03-26T09:38:55.674Z - normal: Destination C:\QiShi\build-templates\wechatgame\wechatgame-subcontext
+2019-03-26T09:38:56.161Z - normal: Delete C:\QiShi\build-templates\wechatgame\wechatgame-subcontext\**\*
+2019-03-26T09:38:59.523Z - normal: Start building assets
+2019-03-26T09:38:59.523Z - normal: Start spawn build-worker
+2019-03-26T09:39:00.352Z - normal: Finish spawn build-worker
+2019-03-26T09:39:00.352Z - normal: Start init build-worker
+2019-03-26T09:39:03.778Z - normal: Finish init build-worker
+2019-03-26T09:39:03.778Z - normal: Start build-assets in worker
+2019-03-26T09:39:04.451Z - normal: Finish build-assets in worker
+2019-03-26T09:39:04.457Z - normal: Finish building assets
+2019-03-26T09:39:04.465Z - normal: Start building plugin scripts
+2019-03-26T09:39:04.470Z - normal: Generating main.js from C:\CocosCreator\resources\static\build-templates\shares\main.js
+2019-03-26T09:39:05.656Z - normal: Built to "C:\QiShi\build-templates\wechatgame\wechatgame-subcontext" successfully
+2019-03-26T10:18:22.920Z - info: shutdown preview server

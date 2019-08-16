@@ -1,0 +1,25 @@
+"use strict";
+cc._RF.push(module, '17600xKjapCpL/l4sTJ2uwM', 'Utils');
+// Script/Utils.js
+
+'use strict';
+
+module.exports = {
+    createImage: function createImage(url, node) {
+        var self = this;
+        if (url) {
+            cc.loader.load({
+                url: url, type: 'png'
+            }, function (err, texture) {
+                if (!err && self) {
+                    var sp = node;
+                    sp.spriteFrame = new cc.SpriteFrame(texture);
+                    sp.type = cc.Sprite.Type.SIMPLE;
+                    sp.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+                }
+            });
+        }
+    }
+};
+
+cc._RF.pop();

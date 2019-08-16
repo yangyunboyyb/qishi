@@ -1,0 +1,31 @@
+{
+  "ver": "2.2.0",
+  "uuid": "ae981658-3219-43a4-9e7d-a9ae84de61c1",
+  "type": "sprite",
+  "wrapMode": "clamp",
+  "filterMode": "bilinear",
+  "premultiplyAlpha": false,
+  "subMetas": {
+    "wenzi_faqitiaozhan": {
+      "ver": "1.0.3",
+      "uuid": "598d1956-5005-41ed-9dbb-0c87bb607605",
+      "rawTextureUuid": "ae981658-3219-43a4-9e7d-a9ae84de61c1",
+      "trimType": "auto",
+      "trimThreshold": 1,
+      "rotated": false,
+      "offsetX": -389,
+      "offsetY": -2,
+      "trimX": 17,
+      "trimY": 11,
+      "width": 168,
+      "height": 38,
+      "rawWidth": 980,
+      "rawHeight": 56,
+      "borderTop": 0,
+      "borderBottom": 0,
+      "borderLeft": 0,
+      "borderRight": 0,
+      "subMetas": {}
+    }
+  }
+}
